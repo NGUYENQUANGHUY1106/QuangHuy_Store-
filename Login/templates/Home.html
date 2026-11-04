@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'Login/css/home.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="home-hero">
+    <div class="home-hero__content">
+        <p class="home-label">ESSENTIAL PERFORMANCE GOODS</p>
+        <h1>THE ART OF<br>MOVEMENT.</h1>
+        <p class="home-hero__description">
+            Thiết kế cho chuyển động. Đẹp cả những ngày bình thường.
+        </p>
+        <a class="home-button" href="#products">KHÁM PHÁ BỘ SƯU TẬP <span>↗</span></a>
+    </div>
+
+    <div class="home-hero__image">
+        <img src="{% static 'Login/images/home/hero-runner.png' %}" alt="Nữ vận động viên đang chạy">
+    </div>
+</section>
+
+<section class="featured-products" id="products">
+    <div class="featured-products__heading">
+        <p class="home-label">QUANGHUY STORE &nbsp;/&nbsp; NEW ARRIVALS &nbsp;/&nbsp; SPORTSWEAR</p>
+        <h2>NEW SEASON ESSENTIALS</h2>
+        <p>Sản phẩm dành cho những chuyển động hàng ngày.</p>
+    </div>
+
+    <div class="product-grid">
+        <article class="product-card">
+            <img src="{% static 'Login/images/home/velocity-runner.png' %}" alt="Giày chạy bộ Velocity Runner màu cát">
+            <h3>VELOCITY RUNNER</h3>
+            <p>Giày chạy bộ / Sand</p>
+            <strong>2.490.000₫</strong>
+        </article>
+
+        <article class="product-card">
+            <img src="{% static 'Login/images/home/training-set.png' %}" alt="Bộ đồ tập Form Training Tee">
+            <h3>FORM TRAINING TEE</h3>
+            <p>Training / Graphite</p>
+            <strong>690.000₫</strong>
+        </article>
+
+        <article class="product-card">
+            <img src="{% static 'Login/images/home/everyday-duffle.png' %}" alt="Túi thể thao Everyday Duffle">
+            <h3>EVERYDAY DUFFLE</h3>
+            <p>Phụ kiện / Stone</p>
+            <strong>890.000₫</strong>
+        </article>
+
+        <article class="product-card">
+            <img src="{% static 'Login/images/home/stride-lite.png' %}" alt="Giày Stride Lite màu đen">
+            <h3>STRIDE LITE</h3>
+            <p>Lifestyle / Ivory</p>
+            <strong>1.990.000₫</strong>
+        </article>
+
+        <article class="product-card">
+            <img src="{% static 'Login/images/home/training-set.png' %}" alt="Quần tập Elevate Legging">
+            <h3>ELEVATE LEGGING</h3>
+            <p>Activewear / Charcoal</p>
+            <strong>890.000₫</strong>
+        </article>
+
+        <article class="product-card">
+            <img src="{% static 'Login/images/home/hero-runner.png' %}" alt="Mũ chạy bộ Core Run Cap">
+            <h3>CORE RUN CAP</h3>
+            <p>Accessories / Ivory</p>
+            <strong>390.000₫</strong>
+        </article>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'Login/css/login.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="auth-layout auth-layout--login" aria-labelledby="login-title">
+    <div class="auth-panel">
+        <div class="auth-panel__inner">
+            <p class="eyebrow">TÀI KHOẢN&nbsp; / &nbsp;MONO FORM</p>
+            <h1 id="login-title">ĐĂNG NHẬP</h1>
+            <p class="auth-intro">Chào mừng bạn trở lại với MONO FORM.</p>
+
+            {% for message in messages %}
+            <div class="form-message form-message--success" role="status">{{ message }}</div>
+            {% endfor %}
+
+            {% if error %}
+            <div class="form-message form-message--error" role="alert">{{ error }}</div>
+            {% endif %}
+
+            <form class="auth-form" method="post">
+                {% csrf_token %}
+
+                <div class="form-field">
+                    <label for="login-email">Email</label>
+                    <input id="login-email" name="email" type="email" autocomplete="email" placeholder="Nhập email" value="{{ email|default:'' }}" required>
+                </div>
+
+                <div class="form-field">
+                    <label for="login-password">Mật khẩu</label>
+                    <input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="Nhập mật khẩu" required>
+                </div>
+
+                <div class="form-options">
+                    <label class="remember-option" for="remember-login">
+                        <input id="remember-login" name="remember" type="checkbox">
+                        <span>Ghi nhớ tài khoản</span>
+                    </label>
+                    <span aria-hidden="true">·</span>
+                    <a href="#">Quên mật khẩu?</a>
+                </div>
+
+                <button class="primary-button" type="submit">ĐĂNG NHẬP</button>
+            </form>
+
+            <div class="auth-switch">
+                <a href="{% url 'register' %}">Chưa có tài khoản? Đăng ký <span aria-hidden="true">↗</span></a>
+            </div>
+        </div>
+    </div>
+
+    <div class="auth-visual">
+        <img src="{% static 'Login/images/registration-editorial.png' %}" alt="Nữ vận động viên đang chạy trên bậc thang ngoài trời">
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'Login/css/register.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="auth-layout" aria-labelledby="register-title">
+  <div class="auth-panel">
+    <div class="auth-panel__inner">
+      <p class="eyebrow">TÀI KHOẢN&nbsp; / &nbsp;QuangHuy_Store</p>
+      <h1 id="register-title">ĐĂNG KÝ TÀI KHOẢN</h1>
+      <p class="auth-intro">
+        Tiếp tục trải nghiệm mua sắm cùng QuangHuy_Store.
+      </p>
+
+      {% if error %}
+      <div class="form-message form-message--error" role="alert">{{ error }}</div>
+      {% endif %}
+
+      <form class="auth-form" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="form-field">
+          <label for="full-name">Họ và tên</label>
+          <input
+            id="full-name"
+            name="full_name"
+            type="text"
+            autocomplete="name"
+            value="{{ full_name|default:'' }}"
+            placeholder="Nhập họ và tên"
+            required
+          />
+        </div>
+
+        <div class="form-field">
+          <label for="register-email">Email</label>
+          <input
+            id="register-email"
+            name="email"
+            type="email"
+            autocomplete="email"
+            value="{{ email|default:'' }}"
+            placeholder="Nhập email"
+            required
+          />
+        </div>
+
+        <div class="form-field">
+          <label for="phone">Số điện thoại</label>
+          <input
+            id="phone"
+            name="phone"
+            type="tel"
+            autocomplete="tel"
+            value="{{ phone|default:'' }}"
+            placeholder="Nhập số điện thoại"
+            required
+          />
+        </div>
+
+        <div class="form-field">
+          <label for="avatar">Avatar</label>
+          <input
+            id="avatar"
+            name="avatar"
+            type="file"
+            accept="image/*"
+            required
+          />
+        </div>
+
+        <div class="form-field">
+          <label for="register-password">Mật khẩu</label>
+          <input
+            id="register-password"
+            name="password"
+            type="password"
+            autocomplete="new-password"
+            placeholder="Nhập mật khẩu"
+            required
+          />
+        </div>
+
+        <div class="form-field">
+          <label for="confirm-password">Nhập lại mật khẩu</label>
+          <input
+            id="confirm-password"
+            name="confirm_password"
+            type="password"
+            autocomplete="new-password"
+            placeholder="Nhập lại mật khẩu"
+            required
+          />
+        </div>
+
+        <div class="form-options">
+          <label class="remember-option" for="remember-register">
+            <input id="remember-register" name="remember" type="checkbox" />
+            <span>Ghi nhớ tài khoản</span>
+          </label>
+          <span aria-hidden="true">·</span>
+          <a href="#">Quên mật khẩu?</a>
+        </div>
+
+        <button class="primary-button" type="submit">TẠO TÀI KHOẢN</button>
+      </form>
+
+      <div class="auth-switch">
+        <a href="{% url 'login' %}"
+          >Đã có tài khoản? Đăng nhập <span aria-hidden="true">↗</span></a
+        >
+      </div>
+    </div>
+  </div>
+
+  <div class="auth-visual">
+    <img
+      src="{% static 'Login/images/registration-editorial.png' %}"
+      alt="Nữ vận động viên đang chạy trên bậc thang ngoài trời"
+    />
+  </div>
+</section>
+{% endblock %}

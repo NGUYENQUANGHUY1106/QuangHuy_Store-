@@ -1,0 +1,36 @@
+:root {
+    --ivory-50: #faf9f6;
+    --ivory-100: #eeece8;
+    --charcoal-900: #20211f;
+    --champagne-500: #b7a98c;
+    --stone-400: #77756e;
+    --line: #d6d2cb;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    min-width: 320px;
+    margin: 0;
+    background: var(--ivory-50);
+    color: var(--charcoal-900);
+    font-family: Inter, Arial, Helvetica, sans-serif;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+button,
+input {
+    font: inherit;
+}

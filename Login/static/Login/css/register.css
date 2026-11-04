@@ -1,0 +1,131 @@
+.auth-layout {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-height: 875px;
+}
+
+.auth-panel {
+    display: flex;
+    justify-content: center;
+    padding: 72px 80px 60px;
+}
+
+.auth-panel__inner {
+    width: min(100%, 560px);
+}
+
+.eyebrow {
+    margin: 0 0 22px;
+    color: var(--stone-400);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.auth-panel h1 {
+    margin: 0 0 14px;
+    font-size: 43px;
+}
+
+.auth-intro {
+    margin: 0 0 23px;
+    color: var(--stone-400);
+    font-size: 15px;
+}
+
+.form-message {
+    margin-bottom: 20px;
+    padding: 13px 15px;
+    border: 1px solid #a63d40;
+    background: #f8eeee;
+    color: #7c2528;
+    font-size: 13px;
+}
+
+.auth-form,
+.form-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.auth-form {
+    gap: 18px;
+}
+
+.form-field {
+    gap: 8px;
+}
+
+.form-field label {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.form-field input {
+    min-height: 46px;
+    padding: 15px;
+    border: 1px solid var(--line);
+    outline: none;
+    background: var(--ivory-50);
+}
+
+.form-options {
+    display: flex;
+    align-items: center;
+    gap: 17px;
+    color: var(--stone-400);
+    font-size: 13px;
+}
+
+.remember-option {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.primary-button {
+    min-height: 45px;
+    padding: 15px;
+    border: 1px solid var(--charcoal-900);
+    background: var(--charcoal-900);
+    color: var(--ivory-50);
+    font-size: 12px;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+}
+
+.auth-switch {
+    margin-top: 22px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.auth-visual {
+    min-height: 875px;
+    overflow: hidden;
+}
+
+.auth-visual img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+@media (max-width: 760px) {
+    .auth-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .auth-panel {
+        order: 2;
+        padding: 48px 22px;
+    }
+
+    .auth-visual {
+        min-height: 58vw;
+        max-height: 430px;
+    }
+}
