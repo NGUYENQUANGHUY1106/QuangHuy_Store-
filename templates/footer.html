@@ -1,19 +1,19 @@
 <footer class="site-footer">
-    <a class="site-footer__brand" href="#">MONO FORM</a>
+    <a class="site-footer__brand" href="{% url 'home' %}">QUANGHUY STORE</a>
 
     <nav class="footer-nav" aria-label="Điều hướng cuối trang">
-        <a href="#">MOVE WITH INTENTION.</a>
+        <a href="{% url 'information_page' 'lien-he' %}">LIÊN HỆ</a>
         <span aria-hidden="true">/</span>
-        <a href="#">SPORT ESSENTIALS</a>
+        <a href="{% url 'information_page' 'chinh-sach' %}">CHÍNH SÁCH</a>
         <span aria-hidden="true">/</span>
-        <a href="#">SUPPORT</a>
+        <a href="{% url 'information_page' 'huong-dan-size' %}">HƯỚNG DẪN SIZE</a>
         <span aria-hidden="true">/</span>
-        <a href="#">JOURNAL</a>
+        <a href="{% url 'home' %}#products">SẢN PHẨM</a>
     </nav>
 
     <div class="site-footer__rule"></div>
     <p class="site-footer__copyright">
-        © 2026 MONO FORM <span aria-hidden="true">·</span>
-        Thiết kế minh họa cho cửa hàng đồ thể thao
+        © 2026 QUANGHUY STORE <span aria-hidden="true">·</span>
+        Giày và trang phục bóng đá
     </p>
 </footer>

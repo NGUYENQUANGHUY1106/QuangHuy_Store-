@@ -9,21 +9,21 @@
     <a class="brand" href="{% url 'home' %}" aria-label="QuangHuy Store - Trang chủ">QuangHuy Store</a>
 
     <nav class="main-nav" aria-label="Điều hướng chính">
-        <a href="#">HÀNG MỚI</a>
-        <a href="#">NAM</a>
-        <a href="#">NỮ</a>
-        <a href="#">GIÀY</a>
-        <a href="#">PHỤ KIỆN</a>
-        <a href="#">BỘ SƯU TẬP</a>
+        <a href="{% url 'home' %}?new=1">HÀNG MỚI</a>
+        {% for category in menu_categories %}
+        <a href="{% url 'product_by_category' category.slug %}">{{ category.name|upper }}</a>
+        {% endfor %}
     </nav>
 
-    <nav style="display: flex; align-items: center;" class="utility-nav" aria-label="Tiện ích">
-        <a href="#" aria-label="Tìm kiếm"><img style="width: 24px; height: 24px; " src="https://cdn-icons-png.flaticon.com/128/54/54481.png" alt=""></a>
-        <a href="#" aria-label="Sản phẩm yêu thích"><img style="width: 24px; height: 24px; " src="https://cdn-icons-png.flaticon.com/128/1077/1077035.png" alt=""></a>
-        <a href="{% url 'login' %}" aria-label="Tài khoản"><img style="width: 24px; height: 24px; " src="https://cdn-icons-png.flaticon.com/128/1144/1144760.png" alt=""></a>
-        <div style="display: flex; align-items: center; gap: 5px;">
-             <a class="bag-link" href="#"><img style="width: 24px; height: 24px; " src="https://cdn-icons-png.flaticon.com/128/4903/4903482.png" alt=""> </a>
-             <p style="margin-top: -10px;">0</p>
-        </div>
-    </nav>
+    <div class="utility-nav">
+        <form class="header-search" action="{% url 'home' %}" method="get" role="search">
+            <label class="sr-only" for="header-search-input">Tìm kiếm sản phẩm</label>
+            <input id="header-search-input" name="q" value="{{ request.GET.q }}" placeholder="Tìm sản phẩm">
+            <button type="submit" aria-label="Tìm kiếm">⌕</button>
+        </form>
+        <a class="utility-link" href="{% url 'login' %}" aria-label="Tài khoản">♙</a>
+        <a class="utility-link cart-link" href="{% url 'home' %}#products" aria-label="Giỏ hàng">
+            ♧<span class="cart-badge">{{ cart_count }}</span>
+        </a>
+    </div>
 </header>

@@ -1,0 +1,35 @@
+.information-page {
+    max-width: 900px;
+    min-height: 55vh;
+    margin: 0 auto;
+    padding: 100px 30px;
+}
+
+.information-page h1 {
+    margin: 18px 0 28px;
+    font-size: clamp(42px, 7vw, 76px);
+    line-height: 1;
+}
+
+.information-page > p:not(.eyebrow) {
+    max-width: 680px;
+    margin-bottom: 35px;
+    color: var(--stone-400);
+    font-size: 18px;
+    line-height: 1.7;
+}
+
+.eyebrow {
+    color: var(--stone-400);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.detail-button {
+    display: inline-block;
+    padding: 15px 20px;
+    background: var(--charcoal-900);
+    color: var(--ivory-50);
+    font-size: 12px;
+    font-weight: 700;
+}

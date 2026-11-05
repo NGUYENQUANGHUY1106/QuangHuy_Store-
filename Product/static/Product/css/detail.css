@@ -1,0 +1,125 @@
+.breadcrumb,
+.product-detail,
+.related-products {
+    max-width: 1320px;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+.breadcrumb {
+    display: flex;
+    gap: 10px;
+    padding: 28px 30px;
+    color: var(--stone-400);
+    font-size: 12px;
+}
+
+.product-detail {
+    display: grid;
+    grid-template-columns: 1.15fr .85fr;
+    gap: 70px;
+    padding: 20px 30px 90px;
+}
+
+.product-detail__gallery {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.product-detail__gallery img {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    background: var(--ivory-100);
+    object-fit: cover;
+}
+
+.product-detail__main-image {
+    grid-column: 1 / -1;
+}
+
+.product-detail__content {
+    position: sticky;
+    top: 30px;
+    align-self: start;
+    padding-top: 30px;
+}
+
+.eyebrow {
+    color: var(--stone-400);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.product-detail h1 {
+    margin: 18px 0;
+    font-size: clamp(36px, 5vw, 64px);
+    line-height: .95;
+}
+
+.product-detail__price {
+    display: flex;
+    gap: 12px;
+    font-size: 22px;
+}
+
+.product-detail__price del {
+    color: var(--stone-400);
+}
+
+.product-detail__note {
+    margin: 35px 0;
+    padding: 22px;
+    background: var(--ivory-100);
+}
+
+.detail-button {
+    display: inline-block;
+    padding: 15px 20px;
+    background: var(--charcoal-900);
+    color: var(--ivory-50);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.related-products {
+    padding: 0 30px 90px;
+}
+
+.related-products h2 {
+    font-size: 36px;
+}
+
+.related-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 22px;
+}
+
+.related-grid img {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+}
+
+@media (max-width: 760px) {
+    .product-detail {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        padding: 10px 22px 60px;
+    }
+
+    .product-detail__content {
+        position: static;
+        padding-top: 10px;
+    }
+
+    .related-products {
+        padding: 0 22px 60px;
+    }
+
+    .related-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}

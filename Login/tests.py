@@ -65,8 +65,8 @@ class AuthenticationViewsTests(TestCase):
         response = self.client.get('/')
 
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'Home.html')
-        self.assertContains(response, 'NEW SEASON ESSENTIALS')
+        self.assertTemplateUsed(response, 'Product/Home.html')
+        self.assertContains(response, 'TẤT CẢ SẢN PHẨM')
 
     def test_login_rejects_wrong_password(self):
         User.objects.create(

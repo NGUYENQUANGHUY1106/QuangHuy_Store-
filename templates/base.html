@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="QuangHuy_Store - Premium sportswear">
-    <title>QuangHuy_Store</title>
+    <meta name="description" content="{% block meta_description %}QuangHuy Store - Giày và quần áo bóng đá chính hãng.{% endblock %}">
+    <title>{% block title %}QuangHuy Store{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'Login/css/base.css' %}">
     <link rel="stylesheet" href="{% static 'Login/css/header.css' %}">
     <link rel="stylesheet" href="{% static 'Login/css/footer.css' %}">
@@ -19,5 +19,6 @@
     </main>
 
     {% include 'footer.html' %}
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -1,0 +1,18 @@
+{% load static product_filters %}
+<article class="product-card">
+    <a class="product-card__image" href="{% url 'product_detail' product.slug %}">
+        {% if product.image %}
+        <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy" onerror="this.onerror=null;this.src='{% static 'Product/images/product-placeholder.svg' %}'">
+        {% else %}
+        <img src="{% static 'Product/images/product-placeholder.svg' %}" alt="Chưa có ảnh {{ product.name }}" loading="lazy">
+        {% endif %}
+        {% if product.discount_percent %}<span class="product-card__discount">-{{ product.discount_percent }}%</span>{% endif %}
+    </a>
+    <p class="product-card__meta">{{ product.brand.name|default:'QuangHuy' }} / {{ product.category.name }}</p>
+    <h3><a href="{% url 'product_detail' product.slug %}">{{ product.name|upper }}</a></h3>
+    {% if product.discount_percent %}
+    <div class="product-card__prices"><strong>{{ product.sale_price|vnd }}</strong><del>{{ product.price|vnd }}</del></div>
+    {% else %}
+    <strong>{{ product.price|vnd }}</strong>
+    {% endif %}
+</article>

@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load static product_filters %}
+
+{% block title %}{{ product.name }} | QuangHuy Store{% endblock %}
+{% block meta_description %}{{ product.description|default:product.name }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'Product/css/detail.css' %}">{% endblock %}
+
+{% block content %}
+<nav class="breadcrumb" aria-label="Đường dẫn">
+    <a href="{% url 'home' %}">Trang chủ</a><span>/</span>
+    <a href="{% url 'product_by_category' product.category.slug %}">{{ product.category.name }}</a><span>/</span>
+    <span>{{ product.name }}</span>
+</nav>
+
+<section class="product-detail">
+    <div class="product-detail__gallery">
+        {% if product.image %}
+        <img class="product-detail__main-image" src="{{ product.image.url }}" alt="{{ product.name }}" onerror="this.onerror=null;this.src='{% static 'Product/images/product-placeholder.svg' %}'">
+        {% else %}
+        <img class="product-detail__main-image" src="{% static 'Product/images/product-placeholder.svg' %}" alt="Chưa có ảnh {{ product.name }}">
+        {% endif %}
+        {% for item in product.images.all %}
+            {% if item.image.name != product.image.name %}<img src="{{ item.image.url }}" alt="{{ item.alt_text|default:product.name }}">{% endif %}
+        {% endfor %}
+    </div>
+
+    <div class="product-detail__content">
+        <p class="eyebrow">{{ product.brand.name|default:'QUANGHUY' }} / {{ product.category.name }}</p>
+        <h1>{{ product.name }}</h1>
+        {% if product.discount_percent %}
+        <p class="product-detail__price"><strong>{{ product.sale_price|vnd }}</strong> <del>{{ product.price|vnd }}</del></p>
+        {% else %}
+        <p class="product-detail__price"><strong>{{ product.price|vnd }}</strong></p>
+        {% endif %}
+        <p>{{ product.description }}</p>
+        <div class="product-detail__note">
+            <strong>Sản phẩm mẫu U01</strong>
+            <p>Size, màu sắc và chức năng thêm giỏ sẽ được hoàn thiện ở các module U04 và U07.</p>
+        </div>
+        <a class="detail-button" href="{% url 'information_page' 'huong-dan-size' %}">XEM HƯỚNG DẪN SIZE</a>
+    </div>
+</section>
+
+{% if related_products %}
+<section class="related-products">
+    <h2>SẢN PHẨM LIÊN QUAN</h2>
+    <div class="related-grid">{% for product in related_products %}{% include 'Product/includes/product_card.html' %}{% endfor %}</div>
+</section>
+{% endif %}
+{% endblock %}

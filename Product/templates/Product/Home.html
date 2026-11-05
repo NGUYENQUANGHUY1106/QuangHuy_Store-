@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if selected_category %}{{ selected_category.name }}{% elif search_query %}Tìm kiếm {{ search_query }}{% else %}QuangHuy Store - Đồ bóng đá{% endif %}{% endblock %}
+{% block meta_description %}Khám phá giày và quần áo bóng đá Nike, adidas, Puma tại QuangHuy Store.{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'Product/css/home.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-loading" id="page-loading" role="status" aria-live="polite" hidden>
+    <span class="page-loading__spinner" aria-hidden="true"></span>
+    <span>Đang tải sản phẩm...</span>
+</div>
+
+<section class="home-hero">
+    <div class="home-hero__content">
+        <p class="home-label">GIÀY VÀ TRANG PHỤC BÓNG ĐÁ</p>
+        <h1>{% if banner %}{{ banner.title }}{% else %}CHƠI BÓNG<br>THEO CÁCH CỦA BẠN.{% endif %}</h1>
+        <p class="home-hero__description">
+            {% if banner %}{{ banner.subtitle }}{% else %}Sản phẩm dành cho mọi vị trí và mọi trận đấu.{% endif %}
+        </p>
+        <a class="home-button" href="{% if banner %}{{ banner.link_url }}{% else %}#products{% endif %}">
+            {% if banner %}{{ banner.link_text }}{% else %}KHÁM PHÁ SẢN PHẨM{% endif %} <span>↗</span>
+        </a>
+    </div>
+
+    <div class="home-hero__image">
+        {% if banner and banner.image %}
+        <img src="{{ banner.image.url }}" alt="{{ banner.title }}" onerror="this.onerror=null;this.src='{% static 'Product/images/hero-runner.png' %}'">
+        {% else %}
+        <img src="{% static 'Product/images/hero-runner.png' %}" alt="Bộ sưu tập bóng đá QuangHuy Store">
+        {% endif %}
+    </div>
+</section>
+
+{% if featured_categories %}
+<section class="home-section category-section" aria-labelledby="category-title">
+    <div class="section-heading">
+        <p class="home-label">KHÁM PHÁ THEO NHU CẦU</p>
+        <h2 id="category-title">DANH MỤC NỔI BẬT</h2>
+    </div>
+    <div class="category-grid">
+        {% for category in featured_categories %}
+        <a class="category-card" href="{% url 'product_by_category' category.slug %}">
+            <span>0{{ forloop.counter }}</span>
+            <strong>{{ category.name|upper }}</strong>
+            <small>XEM SẢN PHẨM →</small>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% if new_products and not selected_category and not search_query %}
+<section class="home-section" aria-labelledby="new-title">
+    <div class="section-heading"><p class="home-label">VỪA CẬP NHẬT</p><h2 id="new-title">HÀNG MỚI</h2></div>
+    <div class="product-grid product-grid--compact">
+        {% for product in new_products %}{% include 'Product/includes/product_card.html' %}{% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% if best_sellers and not selected_category and not search_query %}
+<section class="home-section home-section--dark" aria-labelledby="best-title">
+    <div class="section-heading"><p class="home-label">ĐƯỢC LỰA CHỌN NHIỀU</p><h2 id="best-title">BÁN CHẠY</h2></div>
+    <div class="product-grid product-grid--compact">
+        {% for product in best_sellers %}{% include 'Product/includes/product_card.html' %}{% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% if promotion_products and not selected_category and not search_query %}
+<section class="home-section" aria-labelledby="promotion-title">
+    <div class="section-heading"><p class="home-label">ƯU ĐÃI GIỚI HẠN</p><h2 id="promotion-title">KHUYẾN MÃI</h2></div>
+    <div class="product-grid product-grid--compact">
+        {% for product in promotion_products %}{% include 'Product/includes/product_card.html' %}{% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<section class="home-section featured-products" id="products" aria-labelledby="products-title">
+    <div class="section-heading">
+        <p class="home-label">QUANGHUY STORE / FOOTBALL COLLECTION</p>
+        <h2 id="products-title">
+            {% if selected_category %}{{ selected_category.name|upper }}
+            {% elif search_query %}KẾT QUẢ CHO “{{ search_query|upper }}”
+            {% else %}TẤT CẢ SẢN PHẨM{% endif %}
+        </h2>
+        <p>{{ page_obj.paginator.count }} sản phẩm đang hiển thị.</p>
+    </div>
+
+    <div class="product-grid">
+        {% for product in page_obj %}
+            {% include 'Product/includes/product_card.html' %}
+        {% empty %}
+        <div class="empty-state">
+            <h3>CHƯA TÌM THẤY SẢN PHẨM</h3>
+            <p>Hãy thử từ khóa khác hoặc quay lại danh sách đầy đủ.</p>
+            <a class="home-button" href="{% url 'home' %}">XEM TẤT CẢ</a>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="pagination" aria-label="Phân trang sản phẩm">
+        {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}{% if request.GET.new %}&new=1{% endif %}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}">← TRƯỚC</a>{% endif %}
+        {% for number in page_obj.paginator.page_range %}
+            {% if number == page_obj.number %}<span class="pagination__current">{{ number }}</span>
+            {% else %}<a href="?page={{ number }}{% if request.GET.new %}&new=1{% endif %}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}">{{ number }}</a>{% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}{% if request.GET.new %}&new=1{% endif %}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}">SAU →</a>{% endif %}
+    </nav>
+    {% endif %}
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'Product/js/home.js' %}"></script>
+{% endblock %}

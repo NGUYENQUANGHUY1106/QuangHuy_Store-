@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" role="img" aria-labelledby="title desc">
+  <title id="title">Ảnh sản phẩm đang cập nhật</title>
+  <desc id="desc">Hình minh họa thay thế khi ảnh sản phẩm không tải được</desc>
+  <rect width="800" height="900" fill="#eeece8"/>
+  <path d="M220 520c100-20 142-98 180-210 38 112 80 190 180 210-70 76-290 76-360 0Z" fill="#20211f" opacity=".16"/>
+  <text x="400" y="650" text-anchor="middle" font-family="Arial,sans-serif" font-size="30" fill="#77756e">QUANGHUY STORE</text>
+  <text x="400" y="695" text-anchor="middle" font-family="Arial,sans-serif" font-size="19" fill="#77756e">ẢNH ĐANG CẬP NHẬT</text>
+</svg>

@@ -10,10 +10,6 @@ from django.shortcuts import redirect, render
 from .models import User
 
 
-def home_page(request):
-    return render(request, 'Home.html')
-
-
 def register_page(request):
     if request.method == 'POST':
         full_name = request.POST.get('full_name', '').strip()
