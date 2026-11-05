@@ -9,13 +9,13 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
 from django.core.mail import send_mail
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
-from .models import PasswordResetToken, User
+from .models import Address, PasswordResetToken, User
 
 
 def password_is_strong(password):
@@ -25,6 +25,28 @@ def password_is_strong(password):
 def current_user(request):
     user_id = request.session.get('user_id')
     return User.objects.filter(id=user_id).first() if user_id else None
+
+
+def account_required(request):
+    user = current_user(request)
+    if user is None:
+        return None, redirect(f"{reverse('login')}?next={request.path}")
+    return user, None
+
+
+def address_data(request):
+    data = {
+        'recipient_name': request.POST.get('recipient_name', '').strip(),
+        'phone': request.POST.get('phone', '').strip(),
+        'province': request.POST.get('province', '').strip(),
+        'ward': request.POST.get('ward', '').strip(),
+        'detail': request.POST.get('detail', '').strip(),
+    }
+    if not all(data.values()):
+        return data, 'Vui lòng nhập đầy đủ thông tin địa chỉ.'
+    if not re.fullmatch(r'0\d{9}', data['phone']):
+        return data, 'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng số 0.'
+    return data, None
 
 
 def register_page(request):
@@ -42,7 +64,7 @@ def register_page(request):
             'phone': phone,
         }
 
-        if not all([full_name, email, phone, password, confirm_password, avatar]):
+        if not all([full_name, email, phone, password, confirm_password]):
             context['error'] = 'Vui lòng nhập đầy đủ thông tin.'
             return render(request, 'Register.html', context)
 
@@ -64,11 +86,11 @@ def register_page(request):
             context['error'] = 'Mật khẩu nhập lại không khớp.'
             return render(request, 'Register.html', context)
 
-        if not getattr(avatar, 'content_type', '').startswith('image/'):
+        if avatar and not getattr(avatar, 'content_type', '').startswith('image/'):
             context['error'] = 'Avatar phải là một tệp hình ảnh.'
             return render(request, 'Register.html', context)
 
-        if avatar.size > 5 * 1024 * 1024:
+        if avatar and avatar.size > 5 * 1024 * 1024:
             context['error'] = 'Kích thước avatar không được vượt quá 5 MB.'
             return render(request, 'Register.html', context)
 
@@ -164,10 +186,141 @@ def logout_page(request):
 
 
 def account_page(request):
-    user = current_user(request)
-    if user is None:
-        return redirect(f"{reverse('login')}?next={request.path}")
-    return render(request, 'Account.html', {'account_user': user})
+    user, response = account_required(request)
+    if response:
+        return response
+
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        email = request.POST.get('email', '').strip().lower()
+        phone = request.POST.get('phone', '').strip()
+        avatar = request.FILES.get('avatar')
+        if not username or not email or not re.fullmatch(r'0\d{9}', phone):
+            messages.error(request, 'Họ tên, email và số điện thoại hợp lệ là bắt buộc.')
+            return redirect('account')
+        try:
+            validate_email(email)
+        except ValidationError:
+            messages.error(request, 'Địa chỉ email không hợp lệ.')
+            return redirect('account')
+        if User.objects.exclude(id=user.id).filter(email__iexact=email).exists():
+            messages.error(request, 'Email này đã được sử dụng.')
+            return redirect('account')
+        if User.objects.exclude(id=user.id).filter(username__iexact=username).exists():
+            messages.error(request, 'Tên tài khoản này đã được sử dụng.')
+            return redirect('account')
+        if avatar:
+            if not getattr(avatar, 'content_type', '').startswith('image/') or avatar.size > 5 * 1024 * 1024:
+                messages.error(request, 'Avatar phải là ảnh và không vượt quá 5 MB.')
+                return redirect('account')
+            user.avatar = avatar
+        user.username = username
+        user.email = email
+        user.phone = phone
+        user.save()
+        request.session['username'] = user.username
+        request.session['email'] = user.email
+        messages.success(request, 'Đã cập nhật hồ sơ cá nhân.')
+        return redirect('account')
+
+    return render(request, 'Account.html', {
+        'account_user': user,
+        'addresses': user.addresses.all(),
+    })
+
+
+@require_POST
+def change_password_page(request):
+    user, response = account_required(request)
+    if response:
+        return response
+    current_password = request.POST.get('current_password', '')
+    new_password = request.POST.get('new_password', '')
+    confirm_password = request.POST.get('confirm_password', '')
+    if not check_password(current_password, user.password):
+        messages.error(request, 'Mật khẩu hiện tại không đúng.')
+    elif not password_is_strong(new_password):
+        messages.error(request, 'Mật khẩu mới phải có ít nhất 8 ký tự, gồm chữ và số.')
+    elif new_password != confirm_password:
+        messages.error(request, 'Mật khẩu mới nhập lại không khớp.')
+    else:
+        user.password = make_password(new_password)
+        user.save(update_fields=['password'])
+        messages.success(request, 'Đã đổi mật khẩu thành công.')
+    return redirect('account')
+
+
+@require_POST
+def address_add(request):
+    user, response = account_required(request)
+    if response:
+        return response
+    data, error = address_data(request)
+    if error:
+        messages.error(request, error)
+        return redirect('account')
+    with transaction.atomic():
+        make_default = request.POST.get('is_default') == 'on' or not user.addresses.exists()
+        if make_default:
+            user.addresses.update(is_default=False)
+        Address.objects.create(user=user, is_default=make_default, **data)
+    messages.success(request, 'Đã thêm địa chỉ giao hàng.')
+    return redirect('account')
+
+
+@require_POST
+def address_edit(request, address_id):
+    user, response = account_required(request)
+    if response:
+        return response
+    address = get_object_or_404(Address, id=address_id, user=user)
+    data, error = address_data(request)
+    if error:
+        messages.error(request, error)
+        return redirect('account')
+    with transaction.atomic():
+        if request.POST.get('is_default') == 'on':
+            user.addresses.exclude(id=address.id).update(is_default=False)
+            address.is_default = True
+        for field, value in data.items():
+            setattr(address, field, value)
+        address.save()
+    messages.success(request, 'Đã cập nhật địa chỉ.')
+    return redirect('account')
+
+
+@require_POST
+def address_delete(request, address_id):
+    user, response = account_required(request)
+    if response:
+        return response
+    address = get_object_or_404(Address, id=address_id, user=user)
+    if address.is_used_in_order:
+        messages.error(request, 'Không thể xóa địa chỉ đã được dùng trong đơn hàng.')
+        return redirect('account')
+    was_default = address.is_default
+    address.delete()
+    if was_default:
+        replacement = user.addresses.first()
+        if replacement:
+            replacement.is_default = True
+            replacement.save(update_fields=['is_default'])
+    messages.success(request, 'Đã xóa địa chỉ.')
+    return redirect('account')
+
+
+@require_POST
+def address_set_default(request, address_id):
+    user, response = account_required(request)
+    if response:
+        return response
+    address = get_object_or_404(Address, id=address_id, user=user)
+    with transaction.atomic():
+        user.addresses.update(is_default=False)
+        address.is_default = True
+        address.save(update_fields=['is_default'])
+    messages.success(request, 'Đã chọn địa chỉ mặc định.')
+    return redirect('account')
 
 
 def forgot_password_page(request):

@@ -4,11 +4,72 @@
 {% block extra_css %}<link rel="stylesheet" href="{% static 'Login/css/account.css' %}">{% endblock %}
 {% block content %}
 <section class="account-page">
-    <header><p>QUANGHUY STORE / TÀI KHOẢN</p><h1>CHÀO, {{ account_user.username|upper }}</h1></header>
-    <div class="account-card">
-        {% if account_user.avatar %}<img src="{{ account_user.avatar.url }}" alt="Avatar {{ account_user.username }}">{% endif %}
-        <dl><div><dt>Họ tên</dt><dd>{{ account_user.username }}</dd></div><div><dt>Email</dt><dd>{{ account_user.email }}</dd></div><div><dt>Số điện thoại</dt><dd>{{ account_user.phone }}</dd></div></dl>
-        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">ĐĂNG XUẤT</button></form>
-    </div>
+    <header class="account-hero"><p>QUANGHUY STORE / TÀI KHOẢN</p><h1>CHÀO, {{ account_user.username|upper }}</h1></header>
+    <nav class="account-tabs" aria-label="Các mục tài khoản"><a href="#profile">HỒ SƠ</a><a href="#addresses">ĐỊA CHỈ</a><a href="#orders">ĐƠN HÀNG</a><a href="#wishlist">YÊU THÍCH</a></nav>
+    {% for message in messages %}<div class="account-message account-message--{{ message.tags }}">{{ message }}</div>{% endfor %}
+
+    <section class="account-section" id="profile">
+        <div class="section-heading"><p>01</p><h2>HỒ SƠ CÁ NHÂN</h2></div>
+        <div class="profile-grid">
+            <div class="avatar-box">{% if account_user.avatar %}<img src="{{ account_user.avatar.url }}" alt="Avatar {{ account_user.username }}">{% else %}<span>{{ account_user.username|first|upper }}</span>{% endif %}</div>
+            <form method="post" enctype="multipart/form-data" class="account-form">{% csrf_token %}
+                <label>Họ và tên<input name="username" value="{{ account_user.username }}" required></label>
+                <label>Email<input name="email" type="email" value="{{ account_user.email }}" required></label>
+                <label>Số điện thoại<input name="phone" value="{{ account_user.phone }}" pattern="0[0-9]{9}" required></label>
+                <label>Thay avatar<input name="avatar" type="file" accept="image/*"></label>
+                <button type="submit">LƯU HỒ SƠ</button>
+            </form>
+        </div>
+        <details class="password-panel"><summary>ĐỔI MẬT KHẨU</summary>
+            <form method="post" action="{% url 'change_password' %}" class="account-form">{% csrf_token %}
+                <label>Mật khẩu hiện tại<input name="current_password" type="password" required></label>
+                <label>Mật khẩu mới<input name="new_password" type="password" required></label>
+                <label>Nhập lại mật khẩu mới<input name="confirm_password" type="password" required></label>
+                <button type="submit">ĐỔI MẬT KHẨU</button>
+            </form>
+        </details>
+    </section>
+
+    <section class="account-section" id="addresses">
+        <div class="section-heading"><p>02</p><h2>SỔ ĐỊA CHỈ</h2></div>
+        <div class="address-list">
+            {% for address in addresses %}
+            <article class="address-card{% if address.is_default %} address-card--default{% endif %}">
+                <div><h3>{{ address.recipient_name }}</h3>{% if address.is_default %}<span>MẶC ĐỊNH</span>{% endif %}</div>
+                <p>{{ address.phone }}</p><p>{{ address.detail }}, {{ address.ward }}, {{ address.province }}</p>
+                <div class="address-actions">
+                    <details><summary>SỬA</summary>
+                        <form method="post" action="{% url 'address_edit' address.id %}" class="address-form">{% csrf_token %}
+                            <input name="recipient_name" value="{{ address.recipient_name }}" aria-label="Tên người nhận" required>
+                            <input name="phone" value="{{ address.phone }}" aria-label="Số điện thoại" required>
+                            <input name="province" value="{{ address.province }}" aria-label="Tỉnh thành" required>
+                            <input name="ward" value="{{ address.ward }}" aria-label="Phường xã" required>
+                            <input name="detail" value="{{ address.detail }}" aria-label="Địa chỉ chi tiết" required>
+                            <label class="check"><input name="is_default" type="checkbox" {% if address.is_default %}checked{% endif %}> Đặt làm mặc định</label>
+                            <button type="submit">LƯU</button>
+                        </form>
+                    </details>
+                    {% if not address.is_default %}<form method="post" action="{% url 'address_set_default' address.id %}">{% csrf_token %}<button type="submit">CHỌN MẶC ĐỊNH</button></form>{% endif %}
+                    <form method="post" action="{% url 'address_delete' address.id %}">{% csrf_token %}<button type="submit">XÓA</button></form>
+                </div>
+            </article>
+            {% empty %}<p class="empty-state">Bạn chưa có địa chỉ giao hàng.</p>{% endfor %}
+        </div>
+        <details class="add-address" open><summary>+ THÊM ĐỊA CHỈ MỚI</summary>
+            <form method="post" action="{% url 'address_add' %}" class="address-form address-form--new">{% csrf_token %}
+                <input name="recipient_name" placeholder="Tên người nhận" required>
+                <input name="phone" placeholder="Số điện thoại" pattern="0[0-9]{9}" required>
+                <input name="province" placeholder="Tỉnh / thành phố" required>
+                <input name="ward" placeholder="Phường / xã" required>
+                <input name="detail" placeholder="Số nhà, tên đường" required>
+                <label class="check"><input name="is_default" type="checkbox"> Đặt làm mặc định</label>
+                <button type="submit">THÊM ĐỊA CHỈ</button>
+            </form>
+        </details>
+    </section>
+
+    <section class="account-section account-placeholder" id="orders"><div class="section-heading"><p>03</p><h2>LỊCH SỬ ĐƠN HÀNG</h2></div><p>Chưa có đơn hàng. Đơn đã đặt sẽ xuất hiện tại đây sau khi hoàn thành U08.</p></section>
+    <section class="account-section account-placeholder" id="wishlist"><div class="section-heading"><p>04</p><h2>DANH SÁCH YÊU THÍCH</h2></div><p>Chưa có sản phẩm yêu thích.</p></section>
+    <form method="post" action="{% url 'logout' %}" class="logout-form">{% csrf_token %}<button type="submit">ĐĂNG XUẤT</button></form>
 </section>
 {% endblock %}

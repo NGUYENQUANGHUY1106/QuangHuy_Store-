@@ -1,6 +1,6 @@
 # QuangHuy Store
 
-Website bán giày và quần áo bóng đá bằng Django + PostgreSQL. U01–U05 đã hoàn thành trang chủ, danh mục/bộ lọc, tìm kiếm, chi tiết sản phẩm theo biến thể và tài khoản khách hàng.
+Website bán giày và quần áo bóng đá bằng Django + PostgreSQL. U01–U06 đã hoàn thành trang chủ, danh mục/bộ lọc, tìm kiếm, chi tiết sản phẩm, xác thực tài khoản, hồ sơ và sổ địa chỉ.
 
 ## 1. Cài đặt
 
@@ -75,6 +75,11 @@ Mở `http://127.0.0.1:8000/`.
 | `/register/` | Đăng ký |
 | `/logout/` | POST đăng xuất, vẫn giữ giỏ hàng trong session |
 | `/account/` | Trang tài khoản, yêu cầu đăng nhập |
+| `/account/change-password/` | POST đổi mật khẩu sau khi xác thực mật khẩu hiện tại |
+| `/account/addresses/add/` | POST thêm địa chỉ giao hàng |
+| `/account/addresses/<id>/edit/` | POST sửa đúng địa chỉ của người đang đăng nhập |
+| `/account/addresses/<id>/default/` | POST chọn một địa chỉ mặc định |
+| `/account/addresses/<id>/delete/` | POST xóa địa chỉ chưa dùng trong đơn |
 | `/forgot-password/` | Yêu cầu liên kết đặt lại mật khẩu |
 | `/reset-password/<token>/` | Đặt mật khẩu mới bằng token dùng một lần |
 | `/admin/` | Trang quản trị Django |
@@ -140,7 +145,17 @@ Danh mục mới có `is_active=True` sẽ tự xuất hiện trên menu, không
 - Token đặt lại mật khẩu chỉ lưu bản băm trong database, hết hạn sau 30 phút và chỉ dùng được một lần.
 - Email phát triển được in ra terminal bằng `console.EmailBackend`. Có thể đổi `EMAIL_BACKEND` bằng biến môi trường khi cấu hình dịch vụ gửi thư thật.
 
-## 10. Quản trị dữ liệu
+## 10. Cách U06 hoạt động
+
+- Trang `/account/` cho phép khách tự sửa họ tên, email, điện thoại và avatar tùy chọn; email/tên tài khoản vẫn phải duy nhất.
+- Đổi mật khẩu chỉ thành công khi mật khẩu hiện tại đúng; mật khẩu mới tiếp tục được băm bằng bộ mã hóa của Django.
+- Mỗi tài khoản có nhiều `Address`, gồm người nhận, điện thoại, tỉnh/thành, phường/xã và địa chỉ chi tiết.
+- Địa chỉ đầu tiên tự trở thành mặc định. Khi chọn địa chỉ mặc định khác, transaction tắt cờ mặc định ở các địa chỉ còn lại.
+- Mọi thao tác sửa, xóa và chọn mặc định đều lọc đồng thời theo `address_id` và người đang đăng nhập, ngăn người A truy cập địa chỉ người B.
+- Địa chỉ đã đánh dấu dùng trong đơn không thể bị xóa. U08 sẽ đánh dấu trường này khi tạo đơn hàng.
+- Tab lịch sử đơn hàng và yêu thích đã có trên giao diện; dữ liệu đơn sẽ được nối ở U08.
+
+## 11. Quản trị dữ liệu
 
 Tạo tài khoản admin:
 
@@ -150,7 +165,7 @@ python manage.py createsuperuser
 
 Vào `/admin/` để thêm/sửa danh mục, thương hiệu, sản phẩm, biến thể, ảnh phụ và banner. Khi thêm sản phẩm mới, cần tạo ít nhất một biến thể đang hoạt động để sản phẩm xuất hiện trong trang danh mục U02.
 
-## 11. Kiểm tra dự án
+## 12. Kiểm tra dự án
 
 ```powershell
 python manage.py check
@@ -158,15 +173,15 @@ python manage.py makemigrations --check --dry-run
 python manage.py test
 ```
 
-Toàn bộ test hiện kiểm tra U01–U05: phân trang, bộ lọc, tìm kiếm, API gợi ý, API biến thể, giá/tồn kho, thêm giỏ, đăng ký, đăng nhập, giới hạn đăng nhập sai, chuyển hướng an toàn, đăng xuất và token đặt lại mật khẩu hết hạn/dùng một lần.
+Toàn bộ test hiện kiểm tra U01–U06: các luồng sản phẩm U01–U04, xác thực U05, sửa hồ sơ, avatar tùy chọn, CRUD địa chỉ, chọn mặc định, IDOR, điện thoại không hợp lệ, đổi mật khẩu và bảo vệ địa chỉ đã dùng trong đơn.
 
-## 12. Lỗi thường gặp
+## 13. Lỗi thường gặp
 
 - Không kết nối PostgreSQL: kiểm tra service PostgreSQL, database, mật khẩu và port `5432`.
 - Báo thiếu `DB_PASSWORD`: kiểm tra file `.env` có nằm cạnh `manage.py` và không có dấu `\` ở cuối dòng.
 - CSS chưa cập nhật: nhấn `Ctrl + F5` và kiểm tra đang sửa đúng CSS của trang.
 - Ảnh không hiện: chạy lại `python manage.py seed_products --refresh-images`; giao diện có ảnh mặc định nếu file ảnh lỗi.
 
-## 13. Quy ước phát triển tiếp
+## 14. Quy ước phát triển tiếp
 
 Mỗi nhóm chức năng lớn tạo một Django app riêng, ví dụ sản phẩm thuộc app `Product`, tài khoản thuộc app `Login`. Mỗi file HTML dùng một file CSS riêng và các trang con phải `{% extends 'base.html' %}`, chỉ thay nội dung trong `{% block content %}`.
