@@ -19,6 +19,8 @@ class Category(models.Model):
     order = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
     is_featured = models.BooleanField(default=True)
+    seo_title = models.CharField(max_length=200, blank=True)
+    meta_description = models.CharField(max_length=160, blank=True)
 
     class Meta:
         db_table = 'category'
@@ -72,6 +74,8 @@ class Product(models.Model):
     image = models.ImageField(upload_to='products/')
     description = models.CharField(max_length=255, blank=True)
     material = models.CharField(max_length=100, blank=True, default='Chất liệu thể thao')
+    seo_title = models.CharField(max_length=200, blank=True)
+    meta_description = models.CharField(max_length=160, blank=True)
     source_url = models.URLField(max_length=500, blank=True)
     is_new = models.BooleanField(default=True)
     is_best_seller = models.BooleanField(default=False)

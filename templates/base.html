@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="{% block meta_description %}QuangHuy Store - Giày và quần áo bóng đá chính hãng.{% endblock %}">
+    <meta name="robots" content="{{ seo_robots|default:'index, follow' }}">
+    <link rel="canonical" href="{{ canonical_url }}">
     <title>{% block title %}QuangHuy Store{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'Login/css/base.css' %}">
     <link rel="stylesheet" href="{% static 'Login/css/header.css' %}?v=6">
@@ -13,9 +15,10 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    <a class="skip-link" href="#main-content">Bỏ qua điều hướng</a>
     {% include 'header.html' %}
 
-    <main>
+    <main id="main-content" tabindex="-1">
         {% block content %}{% endblock %}
     </main>
 

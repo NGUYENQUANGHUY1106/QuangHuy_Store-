@@ -17,4 +17,6 @@ def categories_menu(request):
         'cart_count': cart_count_for_request(request),
         'mini_cart_items': mini_cart_items,
         'wishlist_product_ids': wishlist_product_ids,
+        'canonical_url': request.build_absolute_uri(request.path),
+        'seo_robots': 'noindex, nofollow' if request.path.startswith(('/account/', '/cart/', '/checkout/', '/support/')) else 'index, follow',
     }

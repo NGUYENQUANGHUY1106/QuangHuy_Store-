@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}{{ selected_category.name }} | QuangHuy Store{% endblock %}
-{% block meta_description %}Lọc sản phẩm {{ selected_category.name }} theo thương hiệu, giới tính, size, màu, giá và tồn kho.{% endblock %}
+{% block title %}{{ selected_category.seo_title|default:selected_category.name }} | QuangHuy Store{% endblock %}
+{% block meta_description %}{{ selected_category.meta_description|default:selected_category.name }}{% endblock %}
 {% block extra_css %}<link rel="stylesheet" href="{% static 'Product/css/category.css' %}">{% endblock %}
 
 {% block content %}

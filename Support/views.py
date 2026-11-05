@@ -1,8 +1,11 @@
 import time
 from django.contrib import messages
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404,redirect,render
+from django.urls import reverse
 from Login.models import User
-from .models import FAQ,Notification,SupportMessage,SupportTicket
+from Product.models import Category,Product
+from .models import FAQ,Notification,StaticPage,SupportMessage,SupportTicket
 
 def user(request):
     uid=request.session.get('user_id');return User.objects.filter(id=uid).first() if uid else None
@@ -48,3 +51,30 @@ def ticket_detail(request,ticket_id):
         return redirect('ticket_detail',ticket_id=ticket.id)
     return render(request,'Support/TicketDetail.html',{'ticket':ticket})
 def faq_page(request):return render(request,'Support/FAQ.html',{'faqs':FAQ.objects.filter(is_active=True)})
+
+PAGE_DEFAULTS={
+ 'gioi-thieu':('Giới thiệu','QuangHuy Store cung cấp giày và trang phục bóng đá, hỗ trợ chọn đúng SKU, size và màu.'),
+ 'lien-he':('Liên hệ','Email support@quanghuystore.vn · Hotline 0900 000 000.'),
+ 'dieu-khoan':('Điều khoản mua hàng','Khách xác nhận sản phẩm, địa chỉ và thanh toán COD trước khi đặt đơn.'),
+ 'quyen-rieng-tu':('Quyền riêng tư','Thông tin tài khoản chỉ dùng để xử lý đơn, giao hàng và hỗ trợ khách hàng.'),
+ 'van-chuyen':('Chính sách vận chuyển','Phí và ETA là ước tính theo khu vực, phương thức và giá trị đơn tại checkout.'),
+ 'doi-tra-hoan-tien':('Đổi trả và hoàn tiền','Yêu cầu đổi/trả áp dụng cho đơn hoàn tất trong 7 ngày và do Admin xác nhận.'),
+ 'doi-size':('Chính sách đổi size','Khách gửi yêu cầu đổi size trong thời hạn và số lượng đã mua hợp lệ.'),
+}
+def static_page(request,slug):
+    page=StaticPage.objects.filter(slug=slug,is_active=True).first()
+    if not page:
+        default=PAGE_DEFAULTS.get(slug)
+        if not default:return error_404(request,None)
+        page={'title':default[0],'content':default[1],'meta_description':default[1][:160],'slug':slug}
+    return render(request,'Support/StaticPage.html',{'page':page})
+def sitemap(request):
+    urls=[request.build_absolute_uri(reverse('home'))]
+    urls += [request.build_absolute_uri(reverse('product_by_category',args=[x.slug])) for x in Category.objects.filter(is_active=True)]
+    urls += [request.build_absolute_uri(reverse('product_detail',args=[x.slug])) for x in Product.objects.filter(is_active=True)]
+    urls += [request.build_absolute_uri(reverse('static_page',args=[slug])) for slug in PAGE_DEFAULTS]
+    xml='<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+''.join(f'<url><loc>{url}</loc></url>' for url in urls)+'</urlset>'
+    return HttpResponse(xml,content_type='application/xml')
+def robots(request):return HttpResponse('User-agent: *\nAllow: /\nDisallow: /account/\nDisallow: /cart/\nDisallow: /checkout/\nDisallow: /admin/\nSitemap: '+request.build_absolute_uri('/sitemap.xml'),content_type='text/plain')
+def error_404(request,exception):return render(request,'errors/404.html',status=404)
+def error_500(request):return render(request,'errors/500.html',status=500)

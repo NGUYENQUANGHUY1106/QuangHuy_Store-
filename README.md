@@ -1,6 +1,6 @@
 # QuangHuy Store
 
-Website bán giày và quần áo bóng đá bằng Django + PostgreSQL. U01–U16 đã hoàn thành luồng mua hàng, hậu mãi, thông báo và hỗ trợ.
+Website bán giày và quần áo bóng đá bằng Django + PostgreSQL. Toàn bộ phần User U01–U17 đã hoàn thành; thanh toán hiện chỉ dùng COD theo yêu cầu.
 
 ## 1. Cài đặt
 
@@ -103,6 +103,9 @@ Mở `http://127.0.0.1:8000/`.
 | `/support/tickets/` | Danh sách hội thoại hỗ trợ của khách |
 | `/support/tickets/create/` | Tạo ticket có giới hạn tần suất/file an toàn |
 | `/faqs/` | Câu hỏi thường gặp công khai |
+| `/pages/<slug>/` | Giới thiệu, liên hệ và các chính sách công khai |
+| `/sitemap.xml` | Sitemap sản phẩm, danh mục và trang thông tin |
+| `/robots.txt` | Quy tắc index và chặn trang riêng tư |
 | `/login/` | Đăng nhập |
 | `/register/` | Đăng ký |
 | `/logout/` | POST đăng xuất, vẫn giữ giỏ hàng trong session |
@@ -278,7 +281,23 @@ Danh mục mới có `is_active=True` sẽ tự xuất hiện trên menu, không
 - Mỗi session chỉ tạo tối đa 3 ticket/giờ để hạn chế spam.
 - FAQ là trang công khai; email/số điện thoại khách không xuất hiện trong danh sách công khai.
 
-## 21. Quản trị dữ liệu
+## 21. Cách U17 hoạt động
+
+- Có trang giới thiệu, liên hệ, điều khoản, quyền riêng tư, vận chuyển, đổi trả/hoàn tiền và đổi size; Admin có thể quản lý bằng `StaticPage`.
+- Product/Category có `seo_title` và `meta_description`; mọi trang có canonical và robots meta.
+- Sitemap chỉ liệt kê trang công khai. Robots/noindex chặn account, cart, checkout, support và admin.
+- 404/500 có thông báo hữu ích; ảnh co giãn, layout có breakpoint mobile và trang có skip-link.
+- Tất cả link/nút/form chính có text hoặc aria-label; focus bàn phím được hiển thị rõ.
+
+## 22. Checkpoint phần User
+
+- Visitor có thể tìm, lọc, chọn đúng biến thể, thêm giỏ và checkout COD.
+- Customer có thể đăng ký, đăng nhập, lưu địa chỉ, đặt/hủy/mua lại đơn và nhận thông báo.
+- Giá, voucher, phí ship, tồn kho và tổng tiền đều do server tính; đơn lưu snapshot và chống submit trùng.
+- Có wishlist, so sánh, review đã mua, tracking, đổi trả, ticket hỗ trợ và chính sách công khai.
+- Các trường hợp hết tồn, sai giá, voucher hết hạn/quota, IDOR và file giả đều có test.
+
+## 23. Quản trị dữ liệu
 
 Tạo tài khoản admin:
 
@@ -288,7 +307,7 @@ python manage.py createsuperuser
 
 Vào `/admin/` để thêm/sửa danh mục, thương hiệu, sản phẩm, biến thể, ảnh phụ và banner. Khi thêm sản phẩm mới, cần tạo ít nhất một biến thể đang hoạt động để sản phẩm xuất hiện trong trang danh mục U02.
 
-## 22. Kiểm tra dự án
+## 24. Kiểm tra dự án
 
 ```powershell
 python manage.py check
@@ -298,13 +317,13 @@ python manage.py test
 
 Toàn bộ test hiện kiểm tra U01–U08, gồm giỏ hàng, checkout item đã chọn, snapshot địa chỉ, voucher/phí ship, tồn kho, rollback, IDOR và chống tạo đơn trùng.
 
-## 23. Lỗi thường gặp
+## 25. Lỗi thường gặp
 
 - Không kết nối PostgreSQL: kiểm tra service PostgreSQL, database, mật khẩu và port `5432`.
 - Báo thiếu `DB_PASSWORD`: kiểm tra file `.env` có nằm cạnh `manage.py` và không có dấu `\` ở cuối dòng.
 - CSS chưa cập nhật: nhấn `Ctrl + F5` và kiểm tra đang sửa đúng CSS của trang.
 - Ảnh không hiện: chạy lại `python manage.py seed_products --refresh-images`; giao diện có ảnh mặc định nếu file ảnh lỗi.
 
-## 24. Quy ước phát triển tiếp
+## 26. Quy ước phát triển tiếp
 
 Mỗi nhóm chức năng lớn tạo một Django app riêng, ví dụ sản phẩm thuộc app `Product`, tài khoản thuộc app `Login`. Mỗi file HTML dùng một file CSS riêng và các trang con phải `{% extends 'base.html' %}`, chỉ thay nội dung trong `{% block content %}`.

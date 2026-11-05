@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 {% load static product_filters %}
 
-{% block title %}{{ product.name }} | QuangHuy Store{% endblock %}
-{% block meta_description %}{{ product.description|default:product.name }}{% endblock %}
+{% block title %}{{ product.seo_title|default:product.name }} | QuangHuy Store{% endblock %}
+{% block meta_description %}{{ product.meta_description|default:product.description|default:product.name }}{% endblock %}
 {% block extra_css %}<link rel="stylesheet" href="{% static 'Product/css/detail.css' %}"><link rel="stylesheet" href="{% static 'Reviews/css/reviews.css' %}">{% endblock %}
 
 {% block content %}

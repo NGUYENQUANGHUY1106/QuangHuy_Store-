@@ -24,3 +24,11 @@ class SupportMessage(models.Model):
 class FAQ(models.Model):
     question=models.CharField(max_length=300);answer=models.TextField();order=models.PositiveIntegerField(default=0);is_active=models.BooleanField(default=True)
     class Meta:db_table='faq';ordering=['order','id']
+
+class StaticPage(models.Model):
+    title=models.CharField(max_length=200);slug=models.SlugField(max_length=100,unique=True);content=models.TextField();meta_description=models.CharField(max_length=160,blank=True);is_active=models.BooleanField(default=True);updated_at=models.DateTimeField(auto_now=True)
+    class Meta:db_table='static_page'
+
+class SiteSettings(models.Model):
+    store_name=models.CharField(max_length=100,default='QuangHuy Store');contact_email=models.EmailField(default='support@quanghuystore.vn');hotline=models.CharField(max_length=20,default='0900 000 000');address=models.CharField(max_length=255,blank=True)
+    class Meta:db_table='site_settings';verbose_name_plural='Site settings'

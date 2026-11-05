@@ -1,0 +1,1 @@
+.static-page{max-width:900px;min-height:650px;margin:auto;padding:80px 40px}.static-page>p:first-child{color:var(--stone-400);font-size:11px;font-weight:800}.static-page h1{font-size:clamp(40px,7vw,72px)}.static-page>div{font-size:18px;line-height:1.8}@media(max-width:600px){.static-page{padding:50px 18px}}
