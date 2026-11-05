@@ -16,7 +16,7 @@
     </nav>
 
     <div class="utility-nav">
-        <form class="header-search" action="{% url 'home' %}" method="get" role="search">
+        <form class="header-search" action="{% url 'product_search' %}" method="get" role="search" data-suggest-url="{% url 'product_suggest' %}">
             <label class="sr-only" for="header-search-input">Tìm kiếm sản phẩm</label>
             <input id="header-search-input" name="q" value="{{ request.GET.q }}" placeholder="Tìm sản phẩm">
             <button type="submit" aria-label="Tìm kiếm">
@@ -25,6 +25,7 @@
                     <path d="m16 16 4.5 4.5"></path>
                 </svg>
             </button>
+            <div class="search-suggestions" id="search-suggestions" hidden></div>
         </form>
 
         <a class="utility-link cart-link" href="{% url 'home' %}#products" aria-label="Giỏ hàng">

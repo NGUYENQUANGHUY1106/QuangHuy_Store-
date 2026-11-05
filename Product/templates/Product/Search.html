@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tìm kiếm{% if search_query %}: {{ search_query }}{% endif %} | QuangHuy Store{% endblock %}
+{% block meta_description %}Tìm kiếm giày và quần áo bóng đá theo tên, thương hiệu, danh mục hoặc mã SKU.{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'Product/css/search.css' %}">{% endblock %}
+
+{% block content %}
+<section class="search-page">
+    <header class="search-heading">
+        <p>QUANGHUY STORE / TÌM KIẾM</p>
+        <h1>{% if search_query %}KẾT QUẢ CHO “{{ search_query }}”{% else %}TÌM SẢN PHẨM{% endif %}</h1>
+        <span>{{ page_obj.paginator.count }} kết quả</span>
+    </header>
+
+    <form class="search-main-form" action="{% url 'product_search' %}" method="get">
+        <label class="sr-only" for="main-search-input">Từ khóa tìm kiếm</label>
+        <input id="main-search-input" name="q" value="{{ search_query }}" maxlength="80" placeholder="Tên sản phẩm, thương hiệu hoặc mã SKU">
+        <button type="submit">TÌM KIẾM</button>
+    </form>
+
+    <details class="search-filters">
+        <summary>LỌC VÀ SẮP XẾP</summary>
+        <form method="get" class="search-filter-form">
+            <input type="hidden" name="q" value="{{ search_query }}">
+            <label>Thương hiệu
+                <select name="brand" multiple size="3">
+                    {% for brand in available_brands %}<option value="{{ brand.slug }}" {% if brand.slug in selected_brands %}selected{% endif %}>{{ brand.name }}</option>{% endfor %}
+                </select>
+            </label>
+            <label>Giới tính
+                <select name="gender"><option value="">Tất cả</option>{% for value, label in gender_choices %}<option value="{{ value }}" {% if selected_gender == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+            </label>
+            <label>Size
+                <select name="size" multiple size="3">{% for size in available_sizes %}<option value="{{ size }}" {% if size in selected_sizes %}selected{% endif %}>{{ size }}</option>{% endfor %}</select>
+            </label>
+            <label>Màu
+                <select name="color" multiple size="3">{% for color in available_colors %}<option value="{{ color }}" {% if color in selected_colors %}selected{% endif %}>{{ color }}</option>{% endfor %}</select>
+            </label>
+            <label>Giá từ<input type="number" name="min_price" min="0" value="{{ min_price }}"></label>
+            <label>Giá đến<input type="number" name="max_price" min="0" value="{{ max_price }}"></label>
+            <label>Sắp xếp
+                <select name="sort">
+                    <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Mới nhất</option>
+                    <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Giá tăng dần</option>
+                    <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Giá giảm dần</option>
+                    <option value="popular" {% if sort == 'popular' %}selected{% endif %}>Phổ biến</option>
+                </select>
+            </label>
+            <label class="search-stock"><input type="checkbox" name="in_stock" value="1" {% if in_stock %}checked{% endif %}> Còn hàng</label>
+            <button type="submit">ÁP DỤNG</button>
+            <a href="{% url 'product_search' %}?q={{ search_query|urlencode }}">XÓA BỘ LỌC</a>
+        </form>
+    </details>
+
+    {% if filter_errors %}<div class="search-errors" role="alert">{% for error in filter_errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+
+    <div class="search-grid">
+        {% for product in page_obj %}
+            {% include 'Product/includes/product_card.html' %}
+        {% empty %}
+        <div class="search-empty">
+            {% if search_query %}<h2>KHÔNG TÌM THẤY SẢN PHẨM</h2><p>Thử từ khóa ngắn hơn hoặc xóa bớt bộ lọc.</p>
+            {% else %}<h2>NHẬP TỪ KHÓA ĐỂ TÌM KIẾM</h2><p>Bạn có thể tìm theo tên, thương hiệu, danh mục hoặc mã SKU.</p>{% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="search-pagination" aria-label="Phân trang tìm kiếm">
+        {% if page_obj.has_previous %}<a href="?{{ pagination_query|force_escape }}&amp;page={{ page_obj.previous_page_number }}">← TRƯỚC</a>{% endif %}
+        {% for number in page_obj.paginator.page_range %}{% if number == page_obj.number %}<span>{{ number }}</span>{% else %}<a href="?{{ pagination_query|force_escape }}&amp;page={{ number }}">{{ number }}</a>{% endif %}{% endfor %}
+        {% if page_obj.has_next %}<a href="?{{ pagination_query|force_escape }}&amp;page={{ page_obj.next_page_number }}">SAU →</a>{% endif %}
+    </nav>
+    {% endif %}
+</section>
+{% endblock %}

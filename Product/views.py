@@ -2,8 +2,9 @@ from decimal import Decimal, InvalidOperation
 
 from django.core.paginator import Paginator
 from django.db.models import Min, Q
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
 from django.utils import timezone
 
 from .models import Banner, Brand, Category, Product, ProductVariant
@@ -197,6 +198,136 @@ def category_page(request, category_slug):
         'page_obj': page_obj,
         'pagination_query': query_params.urlencode(),
     })
+
+
+def search_page(request):
+    search_query = request.GET.get('q', '').strip()
+    products = active_products()
+    errors = []
+
+    if not search_query:
+        products = products.none()
+    elif len(search_query) > 80:
+        errors.append('Từ khóa tìm kiếm không được vượt quá 80 ký tự.')
+        products = products.none()
+    else:
+        products = products.filter(
+            Q(name__icontains=search_query)
+            | Q(category__name__icontains=search_query)
+            | Q(brand__name__icontains=search_query)
+            | Q(variants__sku__icontains=search_query)
+        ).distinct()
+
+    selected_brands = request.GET.getlist('brand')
+    selected_sizes = request.GET.getlist('size')
+    selected_colors = request.GET.getlist('color')
+    selected_gender = request.GET.get('gender', '')
+    in_stock = request.GET.get('in_stock') == '1'
+    sort = request.GET.get('sort', 'newest')
+    min_price_text = request.GET.get('min_price', '').strip()
+    max_price_text = request.GET.get('max_price', '').strip()
+
+    if selected_brands:
+        products = products.filter(brand__slug__in=selected_brands)
+
+    valid_genders = {value for value, _ in Product.GENDER_CHOICES}
+    if selected_gender:
+        if selected_gender in valid_genders:
+            products = products.filter(gender=selected_gender)
+        else:
+            errors.append('Giới tính không hợp lệ.')
+            selected_gender = ''
+
+    min_price = parse_price(min_price_text, 'Giá thấp nhất', errors)
+    max_price = parse_price(max_price_text, 'Giá cao nhất', errors)
+    valid_price_range = not (min_price is not None and max_price is not None and min_price > max_price)
+    if not valid_price_range:
+        errors.append('Giá thấp nhất phải nhỏ hơn hoặc bằng giá cao nhất.')
+
+    variant_filter = Q(variants__is_active=True)
+    if selected_sizes:
+        variant_filter &= Q(variants__size__in=selected_sizes)
+    if selected_colors:
+        variant_filter &= Q(variants__color__in=selected_colors)
+    if in_stock:
+        variant_filter &= Q(variants__stock__gt=0)
+    if valid_price_range:
+        if min_price is not None:
+            variant_filter &= Q(variants__price__gte=min_price)
+        if max_price is not None:
+            variant_filter &= Q(variants__price__lte=max_price)
+    products = products.filter(variant_filter).distinct()
+
+    sort_options = {
+        'newest': '-created_at',
+        'price_asc': 'variant_min_price',
+        'price_desc': '-variant_min_price',
+        'popular': '-popularity',
+    }
+    if sort not in sort_options:
+        errors.append('Kiểu sắp xếp không hợp lệ.')
+        sort = 'newest'
+    products = products.order_by(sort_options[sort], 'id')
+
+    paginator = Paginator(products, 6)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    variant_options = ProductVariant.objects.filter(product__is_active=True, is_active=True)
+    query_params = request.GET.copy()
+    query_params.pop('page', None)
+
+    return render(request, 'Product/Search.html', {
+        'search_query': search_query,
+        'page_obj': page_obj,
+        'filter_errors': errors,
+        'available_brands': Brand.objects.filter(is_active=True, products__is_active=True).distinct(),
+        'available_sizes': variant_options.values_list('size', flat=True).distinct().order_by('size'),
+        'available_colors': variant_options.values_list('color', flat=True).distinct().order_by('color'),
+        'gender_choices': Product.GENDER_CHOICES,
+        'selected_brands': selected_brands,
+        'selected_sizes': selected_sizes,
+        'selected_colors': selected_colors,
+        'selected_gender': selected_gender,
+        'min_price': min_price_text,
+        'max_price': max_price_text,
+        'in_stock': in_stock,
+        'sort': sort,
+        'pagination_query': query_params.urlencode(),
+    })
+
+
+def search_suggest(request):
+    now = int(timezone.now().timestamp())
+    recent_requests = [
+        timestamp
+        for timestamp in request.session.get('suggest_requests', [])
+        if now - timestamp < 60
+    ]
+    if len(recent_requests) >= 30:
+        return JsonResponse({'results': [], 'error': 'Bạn thao tác quá nhanh.'}, status=429)
+    recent_requests.append(now)
+    request.session['suggest_requests'] = recent_requests
+
+    search_query = request.GET.get('q', '').strip()
+    if len(search_query) < 2 or len(search_query) > 80:
+        return JsonResponse({'query': search_query[:80], 'results': []})
+
+    products = active_products().filter(
+        Q(name__icontains=search_query)
+        | Q(category__name__icontains=search_query)
+        | Q(brand__name__icontains=search_query)
+        | Q(variants__sku__icontains=search_query)
+    ).distinct()[:8]
+
+    results = []
+    for product in products:
+        results.append({
+            'name': product.name,
+            'brand': product.brand.name if product.brand else 'QuangHuy',
+            'price': int(product.variant_min_price or product.price),
+            'image': product.image.url if product.image else '',
+            'url': reverse('product_detail', args=[product.slug]),
+        })
+    return JsonResponse({'query': search_query, 'results': results})
 
 
 def product_detail(request, product_slug):

@@ -1,6 +1,6 @@
 # QuangHuy Store
 
-Website bán giày và quần áo bóng đá bằng Django + PostgreSQL. U01 đã hoàn thành trang chủ và điều hướng sản phẩm. U02 đã hoàn thành trang danh mục, biến thể sản phẩm, bộ lọc nâng cao, sắp xếp và phân trang theo query string.
+Website bán giày và quần áo bóng đá bằng Django + PostgreSQL. U01 đã hoàn thành trang chủ, U02 đã hoàn thành danh mục và bộ lọc, U03 đã hoàn thành tìm kiếm sản phẩm và gợi ý tức thời.
 
 ## 1. Cài đặt
 
@@ -61,6 +61,8 @@ Mở `http://127.0.0.1:8000/`.
 |---|---|
 | `/` | Trang chủ và danh sách sản phẩm |
 | `/?q=nike` | Tìm kiếm sản phẩm |
+| `/products/?q=nike` | Trang kết quả tìm kiếm U03 |
+| `/products/suggest/?q=nike` | API gợi ý tối đa 8 sản phẩm |
 | `/?new=1` | Hàng mới |
 | `/?page=2` | Trang sản phẩm tiếp theo, tối đa 6 sản phẩm/trang |
 | `/category/<slug>/` | Lọc theo danh mục |
@@ -98,7 +100,18 @@ Danh mục mới có `is_active=True` sẽ tự xuất hiện trên menu, không
 - Giá chỉ được lọc từ biến thể đang hoạt động; sản phẩm, danh mục hoặc thương hiệu đã tắt không xuất hiện.
 - Trên mobile, bộ lọc được thu gọn trong nút `BỘ LỌC SẢN PHẨM`.
 
-## 7. Quản trị dữ liệu
+## 7. Cách U03 hoạt động
+
+- Header gửi từ khóa tới `/products/` và hiển thị dropdown gợi ý khi nhập từ 2 ký tự.
+- JavaScript chờ 300ms sau lần gõ cuối rồi mới gọi API, tránh gửi quá nhiều request.
+- API `/products/suggest/` trả tối đa 8 sản phẩm gồm tên, thương hiệu, ảnh, giá và URL chi tiết.
+- Có thể tìm theo tên sản phẩm, thương hiệu, danh mục hoặc SKU của biến thể.
+- Trang kết quả sử dụng lại bộ lọc và sắp xếp của U02; query string được giữ khi phân trang.
+- Từ khóa dài tối đa 80 ký tự; API gợi ý giới hạn 30 request/phút cho mỗi session.
+- Nội dung gợi ý được tạo bằng `textContent`, còn Django template tự escape từ khóa để tránh chèn HTML.
+- Lịch sử 5 từ khóa gần nhất được lưu phía trình duyệt bằng `localStorage`.
+
+## 8. Quản trị dữ liệu
 
 Tạo tài khoản admin:
 
@@ -108,7 +121,7 @@ python manage.py createsuperuser
 
 Vào `/admin/` để thêm/sửa danh mục, thương hiệu, sản phẩm, biến thể, ảnh phụ và banner. Khi thêm sản phẩm mới, cần tạo ít nhất một biến thể đang hoạt động để sản phẩm xuất hiện trong trang danh mục U02.
 
-## 8. Kiểm tra dự án
+## 9. Kiểm tra dự án
 
 ```powershell
 python manage.py check
@@ -116,15 +129,15 @@ python manage.py makemigrations --check --dry-run
 python manage.py test
 ```
 
-22 test hiện kiểm tra U01 và U02: phân trang 6 sản phẩm, giữ bộ lọc trên query string, menu động, tìm kiếm tiếng Việt, lọc kép, size/màu/giá/tồn kho, sắp xếp, danh mục cha–con, giá không hợp lệ, danh mục không tồn tại, trạng thái rỗng và luồng trang chủ → chi tiết sản phẩm.
+29 test hiện kiểm tra U01–U03: phân trang, bộ lọc, tìm kiếm tiếng Việt/SKU, API gợi ý, giới hạn từ khóa và request, ký tự đặc biệt, trạng thái rỗng, danh mục cha–con và luồng trang chủ → chi tiết sản phẩm.
 
-## 9. Lỗi thường gặp
+## 10. Lỗi thường gặp
 
 - Không kết nối PostgreSQL: kiểm tra service PostgreSQL, database, mật khẩu và port `5432`.
 - Báo thiếu `DB_PASSWORD`: kiểm tra file `.env` có nằm cạnh `manage.py` và không có dấu `\` ở cuối dòng.
 - CSS chưa cập nhật: nhấn `Ctrl + F5` và kiểm tra đang sửa đúng CSS của trang.
 - Ảnh không hiện: chạy lại `python manage.py seed_products --refresh-images`; giao diện có ảnh mặc định nếu file ảnh lỗi.
 
-## 10. Quy ước phát triển tiếp
+## 11. Quy ước phát triển tiếp
 
 Mỗi nhóm chức năng lớn tạo một Django app riêng, ví dụ sản phẩm thuộc app `Product`, tài khoản thuộc app `Login`. Mỗi file HTML dùng một file CSS riêng và các trang con phải `{% extends 'base.html' %}`, chỉ thay nội dung trong `{% block content %}`.

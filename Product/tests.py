@@ -271,3 +271,93 @@ class ProductFilterTests(TestCase):
         response = self.client.get(self.category_url())
 
         self.assertContains(response, child_product.name.upper())
+
+
+class ProductSearchTests(TestCase):
+    def setUp(self):
+        brand = Brand.objects.create(name='Nike', slug='nike')
+        category = Category.objects.create(name='Giày bóng đá', slug='giay-bong-da')
+        self.product = Product.objects.create(
+            category=category,
+            brand=brand,
+            name='Giày Nike Mercurial màu đỏ',
+            slug='giay-nike-mercurial-mau-do',
+            price=2500000,
+            image='products/mercurial.jpg',
+            gender='men',
+        )
+        ProductVariant.objects.create(
+            product=self.product,
+            sku='NK-MERC-42-RED',
+            size='42',
+            color='Đỏ',
+            price=2600000,
+            stock=7,
+        )
+
+    def test_search_by_vietnamese_name(self):
+        response = self.client.get(reverse('product_search'), {'q': 'giày Nike'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'Product/Search.html')
+        self.assertContains(response, self.product.name.upper())
+
+    def test_search_by_variant_sku(self):
+        response = self.client.get(reverse('product_search'), {'q': 'MERC-42'})
+
+        self.assertEqual(response.context['page_obj'].paginator.count, 1)
+        self.assertContains(response, self.product.name.upper())
+
+    def test_search_supports_u02_filters(self):
+        matching = self.client.get(reverse('product_search'), {
+            'q': 'Nike',
+            'brand': 'nike',
+            'size': '42',
+            'color': 'Đỏ',
+            'in_stock': '1',
+        })
+        not_matching = self.client.get(reverse('product_search'), {
+            'q': 'Nike',
+            'size': '39',
+        })
+
+        self.assertEqual(matching.context['page_obj'].paginator.count, 1)
+        self.assertEqual(not_matching.context['page_obj'].paginator.count, 0)
+
+    def test_empty_special_and_unknown_queries_are_safe(self):
+        empty = self.client.get(reverse('product_search'), {'q': ''})
+        special = self.client.get(reverse('product_search'), {'q': '<script>alert(1)</script>'})
+        unknown = self.client.get(reverse('product_search'), {'q': 'không tồn tại'})
+
+        self.assertContains(empty, 'NHẬP TỪ KHÓA')
+        self.assertNotContains(special, '<script>alert(1)</script>', html=False)
+        self.assertContains(special, '&lt;script&gt;')
+        self.assertContains(unknown, 'KHÔNG TÌM THẤY SẢN PHẨM')
+
+    def test_search_rejects_query_over_eighty_characters(self):
+        response = self.client.get(reverse('product_search'), {'q': 'a' * 81})
+
+        self.assertContains(response, 'không được vượt quá 80 ký tự')
+        self.assertEqual(response.context['page_obj'].paginator.count, 0)
+
+    def test_suggestion_api_returns_product_and_detail_url(self):
+        response = self.client.get(reverse('product_suggest'), {'q': 'Mercurial'})
+        payload = response.json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(payload['results']), 1)
+        self.assertEqual(payload['results'][0]['name'], self.product.name)
+        self.assertEqual(
+            payload['results'][0]['url'],
+            reverse('product_detail', args=[self.product.slug]),
+        )
+
+    def test_suggestion_api_requires_two_characters_and_rate_limits(self):
+        short_response = self.client.get(reverse('product_suggest'), {'q': 'N'})
+        self.assertEqual(short_response.json()['results'], [])
+
+        for _ in range(29):
+            self.client.get(reverse('product_suggest'), {'q': 'Nike'})
+        limited_response = self.client.get(reverse('product_suggest'), {'q': 'Nike'})
+
+        self.assertEqual(limited_response.status_code, 429)
