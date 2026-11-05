@@ -29,7 +29,7 @@
             </article>
             {% endfor %}
         </div>
-        <aside class="cart-summary"><p>TỔNG KẾT</p><div><span>Tạm tính</span><strong>{{ cart_total|vnd }}</strong></div><small>Phí vận chuyển và mã giảm giá được tính ở bước thanh toán.</small><button type="button" disabled>TIẾN HÀNH THANH TOÁN — U08</button><form method="post" action="{% url 'cart_clear' %}">{% csrf_token %}<button class="clear" type="submit">XÓA TOÀN BỘ</button></form></aside>
+        <aside class="cart-summary"><p>TỔNG KẾT</p><div><span>Tạm tính</span><strong>{{ cart_total|vnd }}</strong></div><small>Phí vận chuyển và mã giảm giá được tính ở bước thanh toán.</small><form method="get" action="{% url 'checkout' %}"><button type="submit">TIẾN HÀNH THANH TOÁN</button></form><form method="post" action="{% url 'cart_clear' %}">{% csrf_token %}<button class="clear" type="submit">XÓA TOÀN BỘ</button></form></aside>
     </div>
     {% else %}
     <div class="empty-cart"><h2>GIỎ HÀNG ĐANG TRỐNG</h2><p>Hãy chọn đúng size và màu của sản phẩm bạn yêu thích.</p><a href="{% url 'home' %}#products">KHÁM PHÁ SẢN PHẨM →</a></div>

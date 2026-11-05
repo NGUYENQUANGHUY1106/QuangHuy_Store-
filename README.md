@@ -1,6 +1,6 @@
 # QuangHuy Store
 
-Website bán giày và quần áo bóng đá bằng Django + PostgreSQL. U01–U07 đã hoàn thành trang chủ, danh mục, tìm kiếm, chi tiết sản phẩm, tài khoản, sổ địa chỉ và giỏ hàng.
+Website bán giày và quần áo bóng đá bằng Django + PostgreSQL. U01–U08 đã hoàn thành từ trang chủ, sản phẩm, tài khoản, giỏ hàng đến checkout tạo đơn.
 
 ## 1. Cài đặt
 
@@ -77,6 +77,8 @@ Mở `http://127.0.0.1:8000/`.
 | `/cart/items/<id>/select/` | POST chọn sản phẩm để thanh toán |
 | `/cart/items/<id>/delete/` | POST xóa một sản phẩm khỏi giỏ |
 | `/cart/clear/` | POST xóa toàn bộ giỏ |
+| `/checkout/` | Chọn địa chỉ, vận chuyển, thanh toán và đặt đơn |
+| `/checkout/success/<order_code>/` | Trang xác nhận đơn của đúng khách hàng |
 | `/login/` | Đăng nhập |
 | `/register/` | Đăng ký |
 | `/logout/` | POST đăng xuất, vẫn giữ giỏ hàng trong session |
@@ -172,7 +174,18 @@ Danh mục mới có `is_active=True` sẽ tự xuất hiện trên menu, không
 - Khi guest đăng nhập, giỏ guest được merge theo SKU vào giỏ tài khoản và giới hạn theo tồn kho.
 - Mọi thao tác sửa/xóa đều lọc theo giỏ hiện tại nên không thể sửa `CartItem` của người khác.
 
-## 12. Quản trị dữ liệu
+## 12. Cách U08 hoạt động
+
+- App `Checkout` tách riêng, gồm `Order`, `OrderItem`, `OrderAddress`, `Coupon` và `CouponUsage`.
+- Checkout chỉ lấy các `CartItem` đã chọn và luôn đọc lại giá, trạng thái SKU và tồn kho ở server.
+- Khách chọn địa chỉ trong sổ địa chỉ; đơn lưu một bản snapshot nên việc sửa địa chỉ sau này không làm đổi đơn cũ.
+- Vận chuyển tiêu chuẩn 30.000₫, miễn phí từ 999.000₫; hỏa tốc 60.000₫. Tất cả phép tính dùng `Decimal`.
+- Voucher được kiểm tra trạng thái, thời gian, giá trị đơn tối thiểu và giới hạn một lần cho mỗi khách.
+- Khi đặt đơn, server khóa các biến thể bằng transaction, kiểm tra tồn, tạo đơn và item, trừ tồn rồi chỉ xóa các dòng giỏ đã mua.
+- `idempotency_key` ngăn bấm/gửi lại request tạo hai đơn giống nhau.
+- COD tạo đơn chờ xử lý; online tạo đơn chờ để U09 nối cổng thanh toán.
+
+## 13. Quản trị dữ liệu
 
 Tạo tài khoản admin:
 
@@ -182,7 +195,7 @@ python manage.py createsuperuser
 
 Vào `/admin/` để thêm/sửa danh mục, thương hiệu, sản phẩm, biến thể, ảnh phụ và banner. Khi thêm sản phẩm mới, cần tạo ít nhất một biến thể đang hoạt động để sản phẩm xuất hiện trong trang danh mục U02.
 
-## 13. Kiểm tra dự án
+## 14. Kiểm tra dự án
 
 ```powershell
 python manage.py check
@@ -190,15 +203,15 @@ python manage.py makemigrations --check --dry-run
 python manage.py test
 ```
 
-Toàn bộ test hiện kiểm tra U01–U07, gồm cùng SKU, hai size, vượt tồn, sửa giá request, chọn item, xóa, giỏ rỗng, IDOR và merge giỏ guest sau đăng nhập.
+Toàn bộ test hiện kiểm tra U01–U08, gồm giỏ hàng, checkout item đã chọn, snapshot địa chỉ, voucher/phí ship, tồn kho, rollback, IDOR và chống tạo đơn trùng.
 
-## 14. Lỗi thường gặp
+## 15. Lỗi thường gặp
 
 - Không kết nối PostgreSQL: kiểm tra service PostgreSQL, database, mật khẩu và port `5432`.
 - Báo thiếu `DB_PASSWORD`: kiểm tra file `.env` có nằm cạnh `manage.py` và không có dấu `\` ở cuối dòng.
 - CSS chưa cập nhật: nhấn `Ctrl + F5` và kiểm tra đang sửa đúng CSS của trang.
 - Ảnh không hiện: chạy lại `python manage.py seed_products --refresh-images`; giao diện có ảnh mặc định nếu file ảnh lỗi.
 
-## 15. Quy ước phát triển tiếp
+## 16. Quy ước phát triển tiếp
 
 Mỗi nhóm chức năng lớn tạo một Django app riêng, ví dụ sản phẩm thuộc app `Product`, tài khoản thuộc app `Login`. Mỗi file HTML dùng một file CSS riêng và các trang con phải `{% extends 'base.html' %}`, chỉ thay nội dung trong `{% block content %}`.
