@@ -77,9 +77,12 @@ def checkout_page(request):
             messages.error(request, coupon_error)
             return redirect('checkout')
 
-        shipping_fee = Decimal('60000') if shipping_method == 'express' else Decimal('30000')
-        if shipping_method == 'standard' and subtotal >= Decimal('999000'):
-            shipping_fee = Decimal('0')
+        from Shipping.services import selected_shipping
+        shipping_option = selected_shipping(address, subtotal, shipping_method)
+        if not shipping_option:
+            messages.error(request, 'Địa chỉ nằm ngoài vùng giao của phương thức đã chọn.')
+            return redirect('checkout')
+        shipping_fee = shipping_option['fee']
         grand_total = max(subtotal - discount + shipping_fee, Decimal('0'))
 
         try:
