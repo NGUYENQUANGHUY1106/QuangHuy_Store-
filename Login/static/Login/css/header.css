@@ -19,7 +19,7 @@
 
 .site-header {
     display: grid;
-    grid-template-columns: 255px minmax(500px, 1fr) 195px;
+    grid-template-columns: 255px minmax(500px, 1fr) 280px;
     align-items: center;
     gap: 50px;
     min-height: 159px;
@@ -68,22 +68,40 @@
 }
 
 .header-search button {
+    display: grid;
+    width: 34px;
+    flex: 0 0 34px;
+    place-items: center;
+    padding: 0;
     border: 0;
     background: transparent;
     cursor: pointer;
-    font-size: 23px;
 }
 
 .utility-link {
     position: relative;
-    font-size: 25px;
+    display: grid;
+    width: 28px;
+    height: 28px;
+    place-items: center;
     line-height: 1;
+}
+
+.header-search svg,
+.utility-link svg {
+    width: 23px;
+    height: 23px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
 .cart-badge {
     position: absolute;
-    top: -10px;
-    right: -12px;
+    top: -9px;
+    right: -10px;
     display: grid;
     min-width: 19px;
     height: 19px;
