@@ -1,6 +1,6 @@
 # QuangHuy Store
 
-Website bán giày và quần áo bóng đá bằng Django + PostgreSQL. U01–U10 đã hoàn thành từ trang chủ, sản phẩm, tài khoản, giỏ hàng đến checkout, COD và theo dõi đơn.
+Website bán giày và quần áo bóng đá bằng Django + PostgreSQL. U01–U11 đã hoàn thành các luồng mua hàng, COD, theo dõi đơn, yêu thích và so sánh.
 
 ## 1. Cài đặt
 
@@ -84,6 +84,9 @@ Mở `http://127.0.0.1:8000/`.
 | `/account/orders/<order_code>/` | Chi tiết snapshot, thanh toán và timeline đơn |
 | `/account/orders/<order_code>/cancel/` | POST hủy đơn khi còn được phép |
 | `/account/orders/<order_code>/reorder/` | POST mua lại các SKU còn bán/còn hàng |
+| `/account/wishlist/` | Danh sách sản phẩm yêu thích của khách |
+| `/account/wishlist/toggle/<product_id>/` | POST thêm/xóa yêu thích không tải lại trang |
+| `/products/compare/?ids=1&ids=2` | So sánh 2–4 sản phẩm cùng danh mục |
 | `/login/` | Đăng nhập |
 | `/register/` | Đăng ký |
 | `/logout/` | POST đăng xuất, vẫn giữ giỏ hàng trong session |
@@ -208,7 +211,16 @@ Danh mục mới có `is_active=True` sẽ tự xuất hiện trên menu, không
 - Mua lại dùng SKU hiện tại: SKU còn bán/còn tồn được thêm vào giỏ; SKU không khả dụng được bỏ qua và thông báo rõ.
 - URL danh sách, chi tiết, hủy và mua lại đều kiểm tra ownership để ngăn xem/sửa đơn của người khác.
 
-## 15. Quản trị dữ liệu
+## 15. Cách U11 hoạt động
+
+- App `Engagement` lưu `WishlistItem` và `RecentlyViewed` theo tài khoản; constraint ngăn cùng sản phẩm bị lưu trùng.
+- Nút trái tim có trên product-card và trang chi tiết, dùng `fetch` POST có CSRF để thêm/xóa không tải lại trang.
+- Wishlist chỉ hiển thị dữ liệu của người đang đăng nhập; sản phẩm ngừng bán vẫn được giữ để khách nhận biết.
+- Trang so sánh nhận tối đa 4 sản phẩm và chỉ chấp nhận sản phẩm cùng danh mục; hiển thị giá, loại, thương hiệu, chất liệu và size.
+- Sản phẩm đã xem được lưu trong database khi đăng nhập, hoặc tối đa 10 ID trong session đối với guest.
+- Trang chi tiết hiển thị hàng sản phẩm đã xem gần đây, không lặp sản phẩm hiện tại.
+
+## 16. Quản trị dữ liệu
 
 Tạo tài khoản admin:
 
@@ -218,7 +230,7 @@ python manage.py createsuperuser
 
 Vào `/admin/` để thêm/sửa danh mục, thương hiệu, sản phẩm, biến thể, ảnh phụ và banner. Khi thêm sản phẩm mới, cần tạo ít nhất một biến thể đang hoạt động để sản phẩm xuất hiện trong trang danh mục U02.
 
-## 16. Kiểm tra dự án
+## 17. Kiểm tra dự án
 
 ```powershell
 python manage.py check
@@ -228,13 +240,13 @@ python manage.py test
 
 Toàn bộ test hiện kiểm tra U01–U08, gồm giỏ hàng, checkout item đã chọn, snapshot địa chỉ, voucher/phí ship, tồn kho, rollback, IDOR và chống tạo đơn trùng.
 
-## 17. Lỗi thường gặp
+## 18. Lỗi thường gặp
 
 - Không kết nối PostgreSQL: kiểm tra service PostgreSQL, database, mật khẩu và port `5432`.
 - Báo thiếu `DB_PASSWORD`: kiểm tra file `.env` có nằm cạnh `manage.py` và không có dấu `\` ở cuối dòng.
 - CSS chưa cập nhật: nhấn `Ctrl + F5` và kiểm tra đang sửa đúng CSS của trang.
 - Ảnh không hiện: chạy lại `python manage.py seed_products --refresh-images`; giao diện có ảnh mặc định nếu file ảnh lỗi.
 
-## 18. Quy ước phát triển tiếp
+## 19. Quy ước phát triển tiếp
 
 Mỗi nhóm chức năng lớn tạo một Django app riêng, ví dụ sản phẩm thuộc app `Product`, tài khoản thuộc app `Login`. Mỗi file HTML dùng một file CSS riêng và các trang con phải `{% extends 'base.html' %}`, chỉ thay nội dung trong `{% block content %}`.

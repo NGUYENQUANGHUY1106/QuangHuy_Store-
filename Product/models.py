@@ -71,6 +71,7 @@ class Product(models.Model):
     price = models.DecimalField(max_digits=12, decimal_places=0)
     image = models.ImageField(upload_to='products/')
     description = models.CharField(max_length=255, blank=True)
+    material = models.CharField(max_length=100, blank=True, default='Chất liệu thể thao')
     source_url = models.URLField(max_length=500, blank=True)
     is_new = models.BooleanField(default=True)
     is_best_seller = models.BooleanField(default=False)

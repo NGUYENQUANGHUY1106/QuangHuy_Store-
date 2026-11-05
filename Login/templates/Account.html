@@ -69,7 +69,7 @@
     </section>
 
     <section class="account-section account-placeholder" id="orders"><div class="section-heading"><p>03</p><h2>LỊCH SỬ ĐƠN HÀNG</h2></div><p>Xem trạng thái, chi tiết và mua lại các đơn đã đặt.</p><a href="{% url 'order_list' %}">XEM ĐƠN HÀNG CỦA TÔI →</a></section>
-    <section class="account-section account-placeholder" id="wishlist"><div class="section-heading"><p>04</p><h2>DANH SÁCH YÊU THÍCH</h2></div><p>Chưa có sản phẩm yêu thích.</p></section>
+    <section class="account-section account-placeholder" id="wishlist"><div class="section-heading"><p>04</p><h2>DANH SÁCH YÊU THÍCH</h2></div><p>Lưu sản phẩm để xem lại hoặc so sánh.</p><a href="{% url 'wishlist' %}">XEM DANH SÁCH YÊU THÍCH →</a></section>
     <form method="post" action="{% url 'logout' %}" class="logout-form">{% csrf_token %}<button type="submit">ĐĂNG XUẤT</button></form>
 </section>
 {% endblock %}

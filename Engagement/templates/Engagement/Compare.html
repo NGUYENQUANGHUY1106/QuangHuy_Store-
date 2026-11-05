@@ -1,0 +1,75 @@
+{% extends 'base.html' %}{% load static product_filters %}{% block title %}So
+sánh sản phẩm | QuangHuy Store{% endblock %}{% block extra_css %}<link
+  rel="stylesheet"
+  href="{% static 'Engagement/css/compare.css' %}"
+/>{% endblock %}{% block content %}
+<section class="compare-page">
+  <header>
+    <p>SẢN PHẨM / SO SÁNH</p>
+    <h1>SO SÁNH SẢN PHẨM</h1>
+  </header>
+  {% if compare_error %}
+  <div class="compare-error">{{ compare_error }}</div>
+  {% elif compare_products %}
+  <div class="compare-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Thuộc tính</th>
+          {% for product in compare_products %}
+          <th>
+            {% if product.image %}<img
+              src="{{ product.image.url }}"
+              alt="{{ product.name }}"
+            />{% endif %}<a href="{% url 'product_detail' product.slug %}"
+              >{{ product.name }}</a
+            >
+          </th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>Giá</th>
+          {% for product in compare_products %}
+          <td>{{ product.sale_price|vnd }}</td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <th>Danh mục</th>
+          {% for product in compare_products %}
+          <td>{{ product.category.name }}</td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <th>Thương hiệu</th>
+          {% for product in compare_products %}
+          <td>{{ product.brand.name|default:'QuangHuy' }}</td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <th>Chất liệu</th>
+          {% for product in compare_products %}
+          <td>{{ product.material }}</td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <th>Size</th>
+          {% for product in compare_products %}
+          <td>
+            {% for variant in product.variants.all %}{% if variant.is_active
+            %}{{ variant.size }}{% if not forloop.last %}, {% endif %}{% endif
+            %}{% endfor %}
+          </td>
+          {% endfor %}
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="compare-error">
+    Chọn từ 2 đến 4 sản phẩm trong trang yêu thích để so sánh.
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -32,6 +32,7 @@
         <h1>{{ product.name }}</h1>
         <p class="product-detail__price" id="variant-price"><strong>{{ product.price|vnd }}</strong></p>
         <p>{{ product.description }}</p>
+        <button type="button" class="wishlist-toggle detail-wishlist{% if product.id in wishlist_product_ids %} is-active{% endif %}" data-url="{% url 'wishlist_toggle' product.id %}">{% if product.id in wishlist_product_ids %}♥ ĐÃ YÊU THÍCH{% else %}♡ THÊM VÀO YÊU THÍCH{% endif %}</button>
 
         <form method="post" action="{% url 'add_to_cart' product.slug %}" id="variant-form">
             {% csrf_token %}
@@ -70,6 +71,7 @@
 </section>
 
 {% if related_products %}<section class="related-products"><h2>SẢN PHẨM LIÊN QUAN</h2><div class="related-grid">{% for product in related_products %}{% include 'Product/includes/product_card.html' %}{% endfor %}</div></section>{% endif %}
+{% if recent_products %}<section class="recently-viewed"><h2>SẢN PHẨM ĐÃ XEM</h2><div class="recently-grid">{% for product in recent_products %}{% include 'Product/includes/product_card.html' %}{% endfor %}</div></section>{% endif %}
 {% endblock %}
 
 {% block extra_js %}<script src="{% static 'Product/js/detail.js' %}"></script>{% endblock %}

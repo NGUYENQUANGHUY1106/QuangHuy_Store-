@@ -1,5 +1,6 @@
 {% load static product_filters %}
 <article class="product-card">
+    <button type="button" class="wishlist-toggle{% if product.id in wishlist_product_ids %} is-active{% endif %}" data-url="{% url 'wishlist_toggle' product.id %}" aria-label="Yêu thích {{ product.name }}">{% if product.id in wishlist_product_ids %}♥{% else %}♡{% endif %}</button>
     <a class="product-card__image" href="{% url 'product_detail' product.slug %}">
         {% if product.image %}
         <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy" onerror="this.onerror=null;this.src='{% static 'Product/images/product-placeholder.svg' %}'">

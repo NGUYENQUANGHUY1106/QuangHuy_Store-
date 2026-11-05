@@ -341,9 +341,24 @@ def product_detail(request, product_slug):
         category=product.category,
     ).exclude(id=product.id)[:4]
 
+    recent_products = []
+    user_id = request.session.get('user_id')
+    if user_id:
+        from Engagement.models import RecentlyViewed
+        RecentlyViewed.objects.update_or_create(user_id=user_id, product=product)
+        recent_products = Product.objects.filter(
+            viewed_by__user_id=user_id, is_active=True,
+        ).exclude(id=product.id).order_by('-viewed_by__viewed_at')[:6]
+    else:
+        recent_ids = request.session.get('recent_product_ids', [])
+        recent_ids = [product.id] + [item_id for item_id in recent_ids if item_id != product.id]
+        request.session['recent_product_ids'] = recent_ids[:10]
+        recent_products = Product.objects.filter(id__in=recent_ids[1:7], is_active=True)
+
     return render(request, 'Product/Detail.html', {
         'product': product,
         'related_products': related_products,
+        'recent_products': recent_products,
     })
 
 
