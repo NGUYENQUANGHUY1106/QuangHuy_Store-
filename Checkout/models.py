@@ -10,6 +10,8 @@ class Coupon(models.Model):
     discount_percent = models.PositiveIntegerField(default=0, validators=[MaxValueValidator(100)])
     min_order = models.DecimalField(max_digits=14, decimal_places=0, default=0)
     is_active = models.BooleanField(default=True)
+    usage_limit = models.PositiveIntegerField(default=100)
+    used_count = models.PositiveIntegerField(default=0)
     starts_at = models.DateTimeField(null=True, blank=True)
     ends_at = models.DateTimeField(null=True, blank=True)
 
@@ -80,6 +82,28 @@ class CouponUsage(models.Model):
     class Meta:
         db_table = 'coupon_usage'
         constraints = [models.UniqueConstraint(fields=['coupon', 'user'], name='one_coupon_use_per_user')]
+
+
+class Promotion(models.Model):
+    title = models.CharField(max_length=200)
+    description = models.CharField(max_length=500, blank=True)
+    starts_at = models.DateTimeField()
+    ends_at = models.DateTimeField()
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'promotion'
+        ordering = ['-starts_at']
+
+
+class OrderDiscount(models.Model):
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='discount_snapshot')
+    coupon_code = models.CharField(max_length=30)
+    discount_percent = models.PositiveIntegerField()
+    amount = models.DecimalField(max_digits=14, decimal_places=0)
+
+    class Meta:
+        db_table = 'order_discount'
 
 
 class OrderStatusHistory(models.Model):

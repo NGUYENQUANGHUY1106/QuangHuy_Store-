@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Coupon, CouponUsage, Order, OrderAddress, OrderItem, OrderStatusHistory
+from .models import Coupon, CouponUsage, Order, OrderAddress, OrderDiscount, OrderItem, OrderStatusHistory, Promotion
 
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
@@ -14,3 +14,5 @@ admin.site.register(Coupon)
 admin.site.register(CouponUsage)
 admin.site.register(OrderAddress)
 admin.site.register(OrderStatusHistory)
+admin.site.register(Promotion)
+admin.site.register(OrderDiscount)

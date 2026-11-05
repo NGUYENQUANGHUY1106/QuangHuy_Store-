@@ -4,6 +4,7 @@ from decimal import Decimal
 from django.contrib import messages
 from django.db import transaction
 from django.core.paginator import Paginator
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -12,7 +13,7 @@ from Cart.services import get_cart
 from Login.models import Address, User
 from Product.models import ProductVariant
 
-from .models import Coupon, CouponUsage, Order, OrderAddress, OrderItem, OrderStatusHistory
+from .models import Coupon, CouponUsage, Order, OrderAddress, OrderDiscount, OrderItem, OrderStatusHistory, Promotion
 
 
 def get_user(request):
@@ -35,6 +36,8 @@ def get_coupon(code, user, subtotal):
         return None, Decimal('0'), 'Đơn hàng chưa đạt giá trị tối thiểu của mã.'
     if CouponUsage.objects.filter(coupon=coupon, user=user).exists():
         return None, Decimal('0'), 'Bạn đã sử dụng mã giảm giá này.'
+    if coupon.used_count >= coupon.usage_limit:
+        return None, Decimal('0'), 'Mã giảm giá đã hết lượt sử dụng.'
     discount = subtotal * coupon.discount_percent / 100
     return coupon, discount, ''
 
@@ -114,7 +117,16 @@ def checkout_page(request):
                     variant.stock -= item.quantity
                     variant.save(update_fields=['stock'])
                 if coupon:
-                    CouponUsage.objects.create(coupon=coupon, user=user, order=order)
+                    locked_coupon = Coupon.objects.select_for_update().get(id=coupon.id)
+                    if locked_coupon.used_count >= locked_coupon.usage_limit:
+                        raise ValueError('Mã giảm giá đã hết lượt sử dụng.')
+                    CouponUsage.objects.create(coupon=locked_coupon, user=user, order=order)
+                    locked_coupon.used_count += 1
+                    locked_coupon.save(update_fields=['used_count'])
+                    OrderDiscount.objects.create(
+                        order=order, coupon_code=locked_coupon.code,
+                        discount_percent=locked_coupon.discount_percent, amount=discount,
+                    )
                 address.is_used_in_order = True
                 address.save(update_fields=['is_used_in_order'])
                 CartItem.objects.filter(id__in=[item.id for item in items]).delete()
@@ -190,6 +202,12 @@ def order_cancel(request, order_code):
         if order.payment.status == 'pending':
             order.payment.status = 'failed'
             order.payment.save(update_fields=['status', 'updated_at'])
+        usage = CouponUsage.objects.select_related('coupon').filter(order=order).first()
+        if usage:
+            coupon = Coupon.objects.select_for_update().get(id=usage.coupon_id)
+            usage.delete()
+            coupon.used_count = max(coupon.used_count - 1, 0)
+            coupon.save(update_fields=['used_count'])
         OrderStatusHistory.objects.create(order=order, status='cancelled', note='Khách hàng đã hủy đơn.')
     messages.success(request, 'Đã hủy đơn hàng và hoàn lại tồn kho.')
     return redirect('order_detail', order_code=order.order_code)
@@ -221,3 +239,30 @@ def order_reorder(request, order_code):
     if skipped:
         messages.warning(request, 'Không thể mua lại SKU: ' + ', '.join(skipped))
     return redirect('cart_page')
+
+
+def active_promotions(request):
+    now = timezone.now()
+    promotions = Promotion.objects.filter(is_active=True, starts_at__lte=now, ends_at__gte=now)
+    return JsonResponse({'promotions': [
+        {'title': item.title, 'description': item.description, 'ends_at': item.ends_at.isoformat()}
+        for item in promotions
+    ]})
+
+
+def coupon_preview(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Chỉ hỗ trợ POST.'}, status=405)
+    user = get_user(request)
+    if not user:
+        return JsonResponse({'error': 'Vui lòng đăng nhập.'}, status=401)
+    cart = get_cart(request, create=False)
+    items = [] if not cart else cart.items.filter(is_selected=True).select_related('variant', 'variant__product')
+    subtotal = sum((item.line_total for item in items), Decimal('0'))
+    coupon, discount, error = get_coupon(request.POST.get('coupon_code', '').strip(), user, subtotal)
+    if error:
+        return JsonResponse({'valid': False, 'error': error}, status=400)
+    return JsonResponse({
+        'valid': bool(coupon), 'subtotal': int(subtotal), 'discount': int(discount),
+        'total_after_discount': int(max(subtotal - discount, Decimal('0'))),
+    })

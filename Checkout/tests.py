@@ -3,6 +3,8 @@ from decimal import Decimal
 from django.contrib.auth.hashers import make_password
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
+from datetime import timedelta
 
 from Cart.models import Cart, CartItem
 from Login.models import Address, User
@@ -93,6 +95,30 @@ class CheckoutTests(TestCase):
         self.assertEqual(order.shipping_fee, Decimal('60000'))
         self.assertEqual(order.grand_total, Decimal('1860000'))
         self.assertTrue(CouponUsage.objects.filter(coupon=coupon, order=order).exists())
+        coupon.refresh_from_db()
+        self.assertEqual(coupon.used_count, 1)
+
+    def test_expired_and_exhausted_coupon_are_rejected(self):
+        expired = Coupon.objects.create(
+            code='EXPIRED', discount_percent=10,
+            ends_at=timezone.now() - timedelta(minutes=1),
+        )
+        exhausted = Coupon.objects.create(
+            code='FULL', discount_percent=10, usage_limit=1, used_count=1,
+        )
+        expired_response = self.client.post(reverse('coupon_preview'), {'coupon_code': expired.code})
+        full_response = self.client.post(reverse('coupon_preview'), {'coupon_code': exhausted.code})
+        self.assertEqual(expired_response.status_code, 400)
+        self.assertEqual(full_response.status_code, 400)
+
+    def test_cancel_order_returns_coupon_usage(self):
+        coupon = Coupon.objects.create(code='RETURN10', discount_percent=10)
+        self.client.post(reverse('checkout'), self.checkout_data(coupon_code=coupon.code))
+        order = Order.objects.get(user=self.user)
+        self.client.post(reverse('order_cancel', args=[order.order_code]))
+        coupon.refresh_from_db()
+        self.assertEqual(coupon.used_count, 0)
+        self.assertFalse(CouponUsage.objects.filter(order=order).exists())
 
     def test_repeated_idempotency_key_does_not_create_second_order(self):
         data = self.checkout_data()
