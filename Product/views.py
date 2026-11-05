@@ -2,7 +2,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Min, Q
+from django.db.models import Avg, Min, Q
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -355,10 +355,30 @@ def product_detail(request, product_slug):
         request.session['recent_product_ids'] = recent_ids[:10]
         recent_products = Product.objects.filter(id__in=recent_ids[1:7], is_active=True)
 
+    from Reviews.models import Review
+    reviews = Review.objects.filter(product=product, status='approved').select_related('user').prefetch_related('images')
+    selected_rating = request.GET.get('rating', '')
+    if selected_rating in {'1', '2', '3', '4', '5'}:
+        reviews = reviews.filter(rating=int(selected_rating))
+    review_page = Paginator(reviews, 5).get_page(request.GET.get('review_page'))
+    rating_average = Review.objects.filter(product=product, status='approved').aggregate(avg=Avg('rating'))['avg'] or 0
+    can_review = False
+    if user_id:
+        from Checkout.models import OrderItem
+        can_review = (
+            OrderItem.objects.filter(order__user_id=user_id, order__status='completed', variant__product=product).exists()
+            and not Review.objects.filter(user_id=user_id, product=product).exists()
+        )
+
     return render(request, 'Product/Detail.html', {
         'product': product,
         'related_products': related_products,
         'recent_products': recent_products,
+        'review_page': review_page,
+        'rating_average': rating_average,
+        'selected_rating': selected_rating,
+        'can_review': can_review,
+        'product_questions': product.questions.select_related('user')[:10],
     })
 
 

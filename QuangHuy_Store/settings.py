@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'Checkout',
     'Payment',
     'Engagement',
+    'Reviews',
 ]
 
 DATABASES = {

@@ -3,7 +3,7 @@
 
 {% block title %}{{ product.name }} | QuangHuy Store{% endblock %}
 {% block meta_description %}{{ product.description|default:product.name }}{% endblock %}
-{% block extra_css %}<link rel="stylesheet" href="{% static 'Product/css/detail.css' %}">{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'Product/css/detail.css' %}"><link rel="stylesheet" href="{% static 'Reviews/css/reviews.css' %}">{% endblock %}
 
 {% block content %}
 <nav class="breadcrumb" aria-label="Đường dẫn">
@@ -72,6 +72,14 @@
 
 {% if related_products %}<section class="related-products"><h2>SẢN PHẨM LIÊN QUAN</h2><div class="related-grid">{% for product in related_products %}{% include 'Product/includes/product_card.html' %}{% endfor %}</div></section>{% endif %}
 {% if recent_products %}<section class="recently-viewed"><h2>SẢN PHẨM ĐÃ XEM</h2><div class="recently-grid">{% for product in recent_products %}{% include 'Product/includes/product_card.html' %}{% endfor %}</div></section>{% endif %}
+
+<section class="reviews-section" id="reviews"><header><p>ĐÁNH GIÁ ĐÃ MUA</p><h2>{{ rating_average|floatformat:1 }}/5 SAO</h2></header>
+<nav>{% for star in '54321' %}<a href="?rating={{ star }}#reviews" class="{% if selected_rating == star %}active{% endif %}">{{ star }} sao</a>{% endfor %}<a href="?#reviews">Tất cả</a></nav>
+{% if can_review %}<form class="review-form" method="post" enctype="multipart/form-data" action="{% url 'review_create' product.id %}">{% csrf_token %}<label>Số sao<select name="rating" required><option value="5">5 sao</option><option value="4">4 sao</option><option value="3">3 sao</option><option value="2">2 sao</option><option value="1">1 sao</option></select></label><label>Bình luận<textarea name="comment" minlength="5" maxlength="1000" required></textarea></label><label>Ảnh (tối đa 3 ảnh, mỗi ảnh 2 MB)<input name="images" type="file" accept="image/*" multiple></label><button type="submit">GỬI ĐÁNH GIÁ</button></form>{% endif %}
+<div class="review-list">{% for review in review_page %}<article><div><strong>{{ review.user.username }} · {{ review.rating }}/5 ★</strong><span>ĐÃ MUA HÀNG</span></div><p>{{ review.comment }}</p><div class="review-images">{% for image in review.images.all %}<img src="{{ image.image.url }}" alt="Ảnh đánh giá">{% endfor %}</div>{% if request.session.user_id == review.user_id %}<details><summary>SỬA</summary><form method="post" action="{% url 'review_edit' review.id %}">{% csrf_token %}<input name="rating" type="number" min="1" max="5" value="{{ review.rating }}"><textarea name="comment">{{ review.comment }}</textarea><button>LƯU</button></form></details><form method="post" action="{% url 'review_delete' review.id %}">{% csrf_token %}<button>XÓA</button></form>{% elif request.session.user_id %}<form method="post" action="{% url 'review_report' review.id %}">{% csrf_token %}<button>BÁO CÁO</button></form>{% endif %}</article>{% empty %}<p>Chưa có đánh giá phù hợp.</p>{% endfor %}</div>
+{% if review_page.paginator.num_pages > 1 %}<div class="review-pagination">{% if review_page.has_previous %}<a href="?rating={{ selected_rating }}&review_page={{ review_page.previous_page_number }}#reviews">←</a>{% endif %}<span>{{ review_page.number }}/{{ review_page.paginator.num_pages }}</span>{% if review_page.has_next %}<a href="?rating={{ selected_rating }}&review_page={{ review_page.next_page_number }}#reviews">→</a>{% endif %}</div>{% endif %}
+</section>
+<section class="questions-section"><h2>HỎI ĐÁP SẢN PHẨM</h2>{% if request.session.user_id %}<form method="post" action="{% url 'question_create' product.id %}">{% csrf_token %}<input name="question" minlength="5" maxlength="500" placeholder="Bạn muốn hỏi gì về sản phẩm?" required><button>GỬI CÂU HỎI</button></form>{% endif %}{% for question in product_questions %}<article><strong>{{ question.user.username }}</strong><p>{{ question.question }}</p>{% if question.answer %}<div><strong>QuangHuy Store:</strong> {{ question.answer }}</div>{% else %}<small>Đang chờ trả lời</small>{% endif %}</article>{% empty %}<p>Chưa có câu hỏi.</p>{% endfor %}</section>
 {% endblock %}
 
 {% block extra_js %}<script src="{% static 'Product/js/detail.js' %}"></script>{% endblock %}
