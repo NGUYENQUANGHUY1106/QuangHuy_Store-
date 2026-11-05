@@ -1,6 +1,6 @@
 # QuangHuy Store
 
-Website bán giày và quần áo bóng đá bằng Django + PostgreSQL. U01–U14 đã hoàn thành luồng mua hàng, COD, ưu đãi và vận chuyển.
+Website bán giày và quần áo bóng đá bằng Django + PostgreSQL. U01–U15 đã hoàn thành luồng mua hàng, COD, vận chuyển và đổi trả.
 
 ## 1. Cài đặt
 
@@ -96,6 +96,9 @@ Mở `http://127.0.0.1:8000/`.
 | `/promotions/active/` | API chương trình khuyến mãi đang hiệu lực |
 | `/shipping/options/?address_id=<id>` | Phí ship và ETA theo địa chỉ/giỏ |
 | `/account/orders/<code>/shipment/` | Tracking vận đơn của đúng chủ đơn |
+| `/account/returns/` | Lịch sử yêu cầu đổi/trả của khách |
+| `/account/orders/<code>/return/` | Tạo yêu cầu đổi/trả cho đơn đủ điều kiện |
+| `/account/returns/<id>/` | Chi tiết yêu cầu của đúng chủ sở hữu |
 | `/login/` | Đăng nhập |
 | `/register/` | Đăng ký |
 | `/logout/` | POST đăng xuất, vẫn giữ giỏ hàng trong session |
@@ -255,7 +258,15 @@ Danh mục mới có `is_active=True` sẽ tự xuất hiện trên menu, không
 - `Shipment` và `ShipmentEvent` lưu hãng, tracking, ETA và timeline; `event_id` duy nhất chống sự kiện trùng.
 - API tracking và chi tiết đơn chỉ hiển thị vận đơn cho đúng chủ đơn, không lộ địa chỉ qua API.
 
-## 19. Quản trị dữ liệu
+## 19. Cách U15 hoạt động
+
+- Chỉ đơn `completed` trong 7 ngày mới tạo được yêu cầu đổi/trả.
+- Khách chọn item, số lượng không vượt phần đã mua chưa yêu cầu, loại yêu cầu và lý do.
+- Tối đa 3 ảnh minh chứng, mỗi ảnh không quá 2 MB và phải có MIME ảnh.
+- Chống nộp lặp vượt số lượng; khách chỉ xem yêu cầu của mình.
+- Trạng thái gồm pending/reviewing/approved/rejected/received/refunded/replaced; User không tự hoàn tiền.
+
+## 20. Quản trị dữ liệu
 
 Tạo tài khoản admin:
 
@@ -265,7 +276,7 @@ python manage.py createsuperuser
 
 Vào `/admin/` để thêm/sửa danh mục, thương hiệu, sản phẩm, biến thể, ảnh phụ và banner. Khi thêm sản phẩm mới, cần tạo ít nhất một biến thể đang hoạt động để sản phẩm xuất hiện trong trang danh mục U02.
 
-## 20. Kiểm tra dự án
+## 21. Kiểm tra dự án
 
 ```powershell
 python manage.py check
@@ -275,13 +286,13 @@ python manage.py test
 
 Toàn bộ test hiện kiểm tra U01–U08, gồm giỏ hàng, checkout item đã chọn, snapshot địa chỉ, voucher/phí ship, tồn kho, rollback, IDOR và chống tạo đơn trùng.
 
-## 21. Lỗi thường gặp
+## 22. Lỗi thường gặp
 
 - Không kết nối PostgreSQL: kiểm tra service PostgreSQL, database, mật khẩu và port `5432`.
 - Báo thiếu `DB_PASSWORD`: kiểm tra file `.env` có nằm cạnh `manage.py` và không có dấu `\` ở cuối dòng.
 - CSS chưa cập nhật: nhấn `Ctrl + F5` và kiểm tra đang sửa đúng CSS của trang.
 - Ảnh không hiện: chạy lại `python manage.py seed_products --refresh-images`; giao diện có ảnh mặc định nếu file ảnh lỗi.
 
-## 22. Quy ước phát triển tiếp
+## 23. Quy ước phát triển tiếp
 
 Mỗi nhóm chức năng lớn tạo một Django app riêng, ví dụ sản phẩm thuộc app `Product`, tài khoản thuộc app `Login`. Mỗi file HTML dùng một file CSS riêng và các trang con phải `{% extends 'base.html' %}`, chỉ thay nội dung trong `{% block content %}`.
