@@ -76,6 +76,8 @@ class CheckoutTests(TestCase):
         self.address.refresh_from_db()
         self.assertEqual(self.variant.stock, 3)
         self.assertTrue(self.address.is_used_in_order)
+        self.assertEqual(order.payment.status, 'pending')
+        self.assertEqual(order.payment.amount, order.grand_total)
         self.assertFalse(CartItem.objects.filter(id=self.item.id).exists())
         self.assertTrue(CartItem.objects.filter(id=unselected.id).exists())
 

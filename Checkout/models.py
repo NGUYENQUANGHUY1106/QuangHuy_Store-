@@ -20,7 +20,7 @@ class Coupon(models.Model):
 
 class Order(models.Model):
     STATUS_CHOICES = [('pending', 'Chờ xử lý'), ('confirmed', 'Đã xác nhận'), ('cancelled', 'Đã hủy')]
-    PAYMENT_CHOICES = [('cod', 'Thanh toán khi nhận hàng'), ('online', 'Thanh toán online')]
+    PAYMENT_CHOICES = [('cod', 'Thanh toán khi nhận hàng')]
 
     user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='orders')
     order_code = models.CharField(max_length=20, unique=True)

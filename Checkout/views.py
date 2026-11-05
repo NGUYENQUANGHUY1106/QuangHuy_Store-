@@ -65,7 +65,7 @@ def checkout_page(request):
         if not items:
             messages.error(request, 'Bạn chưa chọn sản phẩm để thanh toán.')
             return redirect('cart_page')
-        if shipping_method not in {'standard', 'express'} or payment_method not in {'cod', 'online'}:
+        if shipping_method not in {'standard', 'express'} or payment_method != 'cod':
             messages.error(request, 'Phương thức vận chuyển hoặc thanh toán không hợp lệ.')
             return redirect('checkout')
         coupon, discount, coupon_error = get_coupon(coupon_code, user, subtotal)
@@ -94,6 +94,8 @@ def checkout_page(request):
                     shipping_fee=shipping_fee, grand_total=grand_total,
                     coupon_code=coupon.code if coupon else '', note=request.POST.get('note', '').strip()[:500],
                 )
+                from Payment.models import Payment
+                Payment.objects.create(order=order, method='cod', status='pending', amount=grand_total)
                 OrderAddress.objects.create(
                     order=order, recipient_name=address.recipient_name, phone=address.phone,
                     province=address.province, ward=address.ward, detail=address.detail,

@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'Product',
     'Cart',
     'Checkout',
+    'Payment',
 ]
 
 DATABASES = {
