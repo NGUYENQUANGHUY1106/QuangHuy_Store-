@@ -8,7 +8,7 @@ from Cart.models import Cart, CartItem
 from Login.models import Address, User
 from Product.models import Brand, Category, Product, ProductVariant
 
-from .models import Coupon, CouponUsage, Order
+from .models import Coupon, CouponUsage, Order, OrderStatusHistory
 
 
 class CheckoutTests(TestCase):
@@ -78,6 +78,7 @@ class CheckoutTests(TestCase):
         self.assertTrue(self.address.is_used_in_order)
         self.assertEqual(order.payment.status, 'pending')
         self.assertEqual(order.payment.amount, order.grand_total)
+        self.assertTrue(OrderStatusHistory.objects.filter(order=order, status='pending').exists())
         self.assertFalse(CartItem.objects.filter(id=self.item.id).exists())
         self.assertTrue(CartItem.objects.filter(id=unselected.id).exists())
 
@@ -122,3 +123,59 @@ class CheckoutTests(TestCase):
         response = self.client.post(reverse('checkout'), self.checkout_data(address_id=other_address.id))
         self.assertEqual(response.status_code, 404)
         self.assertFalse(Order.objects.exists())
+
+    def place_order(self):
+        self.client.post(reverse('checkout'), self.checkout_data())
+        return Order.objects.get(user=self.user)
+
+    def test_order_list_and_detail_only_show_owner_orders(self):
+        order = self.place_order()
+        other = User.objects.create(
+            username='Other Order', email='other-order@example.com', phone='0987654321',
+            password=make_password('secret123'),
+        )
+        other_order = Order.objects.create(
+            user=other, order_code='QHOTHER001', idempotency_key='other-key',
+            payment_method='cod', shipping_method='standard', subtotal=100,
+            shipping_fee=0, grand_total=100,
+        )
+
+        response = self.client.get(reverse('order_list'))
+
+        self.assertContains(response, order.order_code)
+        self.assertNotContains(response, other_order.order_code)
+        self.assertEqual(self.client.get(reverse('order_detail', args=[other_order.order_code])).status_code, 404)
+
+    def test_cancel_order_restores_stock_only_once_and_adds_timeline(self):
+        order = self.place_order()
+        self.variant.refresh_from_db()
+        self.assertEqual(self.variant.stock, 3)
+
+        self.client.post(reverse('order_cancel', args=[order.order_code]))
+        self.client.post(reverse('order_cancel', args=[order.order_code]))
+
+        order.refresh_from_db()
+        self.variant.refresh_from_db()
+        self.assertEqual(order.status, 'cancelled')
+        self.assertEqual(self.variant.stock, 5)
+        self.assertEqual(OrderStatusHistory.objects.filter(order=order, status='cancelled').count(), 1)
+
+    def test_shipping_order_cannot_be_cancelled(self):
+        order = self.place_order()
+        order.status = 'shipping'
+        order.save(update_fields=['status'])
+
+        self.client.post(reverse('order_cancel', args=[order.order_code]))
+
+        order.refresh_from_db()
+        self.variant.refresh_from_db()
+        self.assertEqual(order.status, 'shipping')
+        self.assertEqual(self.variant.stock, 3)
+
+    def test_reorder_adds_available_sku_back_to_cart(self):
+        order = self.place_order()
+        response = self.client.post(reverse('order_reorder', args=[order.order_code]))
+
+        self.assertRedirects(response, reverse('cart_page'))
+        item = CartItem.objects.get(cart=self.cart, variant=self.variant)
+        self.assertEqual(item.quantity, 2)

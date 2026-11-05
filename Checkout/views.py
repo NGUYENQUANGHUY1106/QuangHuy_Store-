@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.db import transaction
+from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -11,7 +12,7 @@ from Cart.services import get_cart
 from Login.models import Address, User
 from Product.models import ProductVariant
 
-from .models import Coupon, CouponUsage, Order, OrderAddress, OrderItem
+from .models import Coupon, CouponUsage, Order, OrderAddress, OrderItem, OrderStatusHistory
 
 
 def get_user(request):
@@ -96,6 +97,7 @@ def checkout_page(request):
                 )
                 from Payment.models import Payment
                 Payment.objects.create(order=order, method='cod', status='pending', amount=grand_total)
+                OrderStatusHistory.objects.create(order=order, status='pending', note='Đơn hàng đã được tạo.')
                 OrderAddress.objects.create(
                     order=order, recipient_name=address.recipient_name, phone=address.phone,
                     province=address.province, ward=address.ward, detail=address.detail,
@@ -137,3 +139,85 @@ def checkout_success(request, order_code):
         return redirect('login')
     order = get_object_or_404(Order.objects.prefetch_related('items'), order_code=order_code, user=user)
     return render(request, 'Checkout/Success.html', {'order': order})
+
+
+def order_list(request):
+    user = get_user(request)
+    if not user:
+        return redirect('/login/?next=/account/orders/')
+    selected_status = request.GET.get('status', '')
+    orders = Order.objects.filter(user=user).select_related('payment')
+    valid_statuses = {value for value, label in Order.STATUS_CHOICES}
+    if selected_status in valid_statuses:
+        orders = orders.filter(status=selected_status)
+    else:
+        selected_status = ''
+    page_obj = Paginator(orders, 10).get_page(request.GET.get('page'))
+    return render(request, 'Checkout/OrderList.html', {
+        'page_obj': page_obj, 'selected_status': selected_status,
+        'status_choices': Order.STATUS_CHOICES,
+    })
+
+
+def order_detail(request, order_code):
+    user = get_user(request)
+    if not user:
+        return redirect('login')
+    order = get_object_or_404(
+        Order.objects.select_related('payment', 'shipping_address').prefetch_related('items', 'status_history'),
+        order_code=order_code, user=user,
+    )
+    return render(request, 'Checkout/OrderDetail.html', {'order': order})
+
+
+def order_cancel(request, order_code):
+    if request.method != 'POST':
+        return redirect('order_detail', order_code=order_code)
+    user = get_user(request)
+    if not user:
+        return redirect('login')
+    with transaction.atomic():
+        order = get_object_or_404(Order.objects.select_for_update(), order_code=order_code, user=user)
+        if order.status not in {'pending', 'confirmed'}:
+            messages.error(request, 'Đơn hàng ở trạng thái này không thể hủy.')
+            return redirect('order_detail', order_code=order.order_code)
+        for item in order.items.select_related('variant'):
+            variant = ProductVariant.objects.select_for_update().get(id=item.variant_id)
+            variant.stock += item.quantity
+            variant.save(update_fields=['stock'])
+        order.status = 'cancelled'
+        order.save(update_fields=['status'])
+        if order.payment.status == 'pending':
+            order.payment.status = 'failed'
+            order.payment.save(update_fields=['status', 'updated_at'])
+        OrderStatusHistory.objects.create(order=order, status='cancelled', note='Khách hàng đã hủy đơn.')
+    messages.success(request, 'Đã hủy đơn hàng và hoàn lại tồn kho.')
+    return redirect('order_detail', order_code=order.order_code)
+
+
+def order_reorder(request, order_code):
+    if request.method != 'POST':
+        return redirect('order_detail', order_code=order_code)
+    user = get_user(request)
+    if not user:
+        return redirect('login')
+    order = get_object_or_404(Order.objects.prefetch_related('items__variant__product'), order_code=order_code, user=user)
+    from Cart.services import add_variant
+    added = 0
+    skipped = []
+    for old_item in order.items.all():
+        variant = old_item.variant
+        if not variant.is_active or not variant.product.is_active or variant.stock < 1:
+            skipped.append(old_item.sku)
+            continue
+        quantity = min(old_item.quantity, variant.stock)
+        success, message = add_variant(request, variant, quantity)
+        if success:
+            added += 1
+        else:
+            skipped.append(old_item.sku)
+    if added:
+        messages.success(request, f'Đã thêm lại {added} sản phẩm vào giỏ.')
+    if skipped:
+        messages.warning(request, 'Không thể mua lại SKU: ' + ', '.join(skipped))
+    return redirect('cart_page')

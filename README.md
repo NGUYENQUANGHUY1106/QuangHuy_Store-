@@ -1,6 +1,6 @@
 # QuangHuy Store
 
-Website bán giày và quần áo bóng đá bằng Django + PostgreSQL. U01–U09 đã hoàn thành từ trang chủ, sản phẩm, tài khoản, giỏ hàng đến checkout và COD.
+Website bán giày và quần áo bóng đá bằng Django + PostgreSQL. U01–U10 đã hoàn thành từ trang chủ, sản phẩm, tài khoản, giỏ hàng đến checkout, COD và theo dõi đơn.
 
 ## 1. Cài đặt
 
@@ -80,6 +80,10 @@ Mở `http://127.0.0.1:8000/`.
 | `/checkout/` | Chọn địa chỉ, vận chuyển, thanh toán và đặt đơn |
 | `/checkout/success/<order_code>/` | Trang xác nhận đơn của đúng khách hàng |
 | `/payments/<order_code>/status/` | API trạng thái thanh toán COD của chủ đơn |
+| `/account/orders/` | Danh sách đơn của khách, lọc trạng thái và phân trang |
+| `/account/orders/<order_code>/` | Chi tiết snapshot, thanh toán và timeline đơn |
+| `/account/orders/<order_code>/cancel/` | POST hủy đơn khi còn được phép |
+| `/account/orders/<order_code>/reorder/` | POST mua lại các SKU còn bán/còn hàng |
 | `/login/` | Đăng nhập |
 | `/register/` | Đăng ký |
 | `/logout/` | POST đăng xuất, vẫn giữ giỏ hàng trong session |
@@ -194,7 +198,17 @@ Danh mục mới có `is_active=True` sẽ tự xuất hiện trên menu, không
 - API trạng thái chỉ cho đúng chủ đơn truy cập, người khác nhận 404.
 - Không có secret, callback hay webhook online trong source code. Phần online được tạm bỏ qua theo yêu cầu.
 
-## 14. Quản trị dữ liệu
+## 14. Cách U10 hoạt động
+
+- “Đơn hàng của tôi” chỉ truy vấn đơn thuộc tài khoản hiện tại, hỗ trợ lọc trạng thái và tối đa 10 đơn mỗi trang.
+- Chi tiết đơn hiển thị snapshot tên/SKU/size/màu/giá, địa chỉ giao hàng, COD và timeline trạng thái.
+- `OrderStatusHistory` lưu từng mốc trạng thái để không phụ thuộc riêng trạng thái hiện tại.
+- Khách chỉ được hủy đơn `pending` hoặc `confirmed`. Transaction khóa đơn/SKU, hoàn tồn đúng một lần và chuyển COD sang thất bại.
+- Đơn đang giao, hoàn tất hoặc đã hủy không thể hủy lần nữa.
+- Mua lại dùng SKU hiện tại: SKU còn bán/còn tồn được thêm vào giỏ; SKU không khả dụng được bỏ qua và thông báo rõ.
+- URL danh sách, chi tiết, hủy và mua lại đều kiểm tra ownership để ngăn xem/sửa đơn của người khác.
+
+## 15. Quản trị dữ liệu
 
 Tạo tài khoản admin:
 
@@ -204,7 +218,7 @@ python manage.py createsuperuser
 
 Vào `/admin/` để thêm/sửa danh mục, thương hiệu, sản phẩm, biến thể, ảnh phụ và banner. Khi thêm sản phẩm mới, cần tạo ít nhất một biến thể đang hoạt động để sản phẩm xuất hiện trong trang danh mục U02.
 
-## 15. Kiểm tra dự án
+## 16. Kiểm tra dự án
 
 ```powershell
 python manage.py check
@@ -214,13 +228,13 @@ python manage.py test
 
 Toàn bộ test hiện kiểm tra U01–U08, gồm giỏ hàng, checkout item đã chọn, snapshot địa chỉ, voucher/phí ship, tồn kho, rollback, IDOR và chống tạo đơn trùng.
 
-## 16. Lỗi thường gặp
+## 17. Lỗi thường gặp
 
 - Không kết nối PostgreSQL: kiểm tra service PostgreSQL, database, mật khẩu và port `5432`.
 - Báo thiếu `DB_PASSWORD`: kiểm tra file `.env` có nằm cạnh `manage.py` và không có dấu `\` ở cuối dòng.
 - CSS chưa cập nhật: nhấn `Ctrl + F5` và kiểm tra đang sửa đúng CSS của trang.
 - Ảnh không hiện: chạy lại `python manage.py seed_products --refresh-images`; giao diện có ảnh mặc định nếu file ảnh lỗi.
 
-## 17. Quy ước phát triển tiếp
+## 18. Quy ước phát triển tiếp
 
 Mỗi nhóm chức năng lớn tạo một Django app riêng, ví dụ sản phẩm thuộc app `Product`, tài khoản thuộc app `Login`. Mỗi file HTML dùng một file CSS riêng và các trang con phải `{% extends 'base.html' %}`, chỉ thay nội dung trong `{% block content %}`.

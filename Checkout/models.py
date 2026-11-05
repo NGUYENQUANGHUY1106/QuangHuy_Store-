@@ -19,7 +19,10 @@ class Coupon(models.Model):
 
 
 class Order(models.Model):
-    STATUS_CHOICES = [('pending', 'Chờ xử lý'), ('confirmed', 'Đã xác nhận'), ('cancelled', 'Đã hủy')]
+    STATUS_CHOICES = [
+        ('pending', 'Chờ xác nhận'), ('confirmed', 'Đã xác nhận'),
+        ('shipping', 'Đang giao'), ('completed', 'Hoàn tất'), ('cancelled', 'Đã hủy'),
+    ]
     PAYMENT_CHOICES = [('cod', 'Thanh toán khi nhận hàng')]
 
     user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='orders')
@@ -77,3 +80,14 @@ class CouponUsage(models.Model):
     class Meta:
         db_table = 'coupon_usage'
         constraints = [models.UniqueConstraint(fields=['coupon', 'user'], name='one_coupon_use_per_user')]
+
+
+class OrderStatusHistory(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='status_history')
+    status = models.CharField(max_length=20, choices=Order.STATUS_CHOICES)
+    note = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'order_status_history'
+        ordering = ['created_at', 'id']
