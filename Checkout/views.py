@@ -6,6 +6,7 @@ from django.db import transaction
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 
 from Cart.models import CartItem
@@ -104,6 +105,8 @@ def checkout_page(request):
                 from Payment.models import Payment
                 Payment.objects.create(order=order, method='cod', status='pending', amount=grand_total)
                 OrderStatusHistory.objects.create(order=order, status='pending', note='Đơn hàng đã được tạo.')
+                from Support.models import Notification
+                Notification.objects.create(user=user,title='Đặt hàng thành công',message=f'Đơn {order.order_code} đã được ghi nhận.',link=reverse('order_detail',args=[order.order_code]))
                 OrderAddress.objects.create(
                     order=order, recipient_name=address.recipient_name, phone=address.phone,
                     province=address.province, ward=address.ward, detail=address.detail,

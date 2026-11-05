@@ -1,6 +1,6 @@
 # QuangHuy Store
 
-Website bán giày và quần áo bóng đá bằng Django + PostgreSQL. U01–U15 đã hoàn thành luồng mua hàng, COD, vận chuyển và đổi trả.
+Website bán giày và quần áo bóng đá bằng Django + PostgreSQL. U01–U16 đã hoàn thành luồng mua hàng, hậu mãi, thông báo và hỗ trợ.
 
 ## 1. Cài đặt
 
@@ -99,6 +99,10 @@ Mở `http://127.0.0.1:8000/`.
 | `/account/returns/` | Lịch sử yêu cầu đổi/trả của khách |
 | `/account/orders/<code>/return/` | Tạo yêu cầu đổi/trả cho đơn đủ điều kiện |
 | `/account/returns/<id>/` | Chi tiết yêu cầu của đúng chủ sở hữu |
+| `/account/notifications/` | Thông báo cá nhân và đánh dấu đã đọc |
+| `/support/tickets/` | Danh sách hội thoại hỗ trợ của khách |
+| `/support/tickets/create/` | Tạo ticket có giới hạn tần suất/file an toàn |
+| `/faqs/` | Câu hỏi thường gặp công khai |
 | `/login/` | Đăng nhập |
 | `/register/` | Đăng ký |
 | `/logout/` | POST đăng xuất, vẫn giữ giỏ hàng trong session |
@@ -266,7 +270,15 @@ Danh mục mới có `is_active=True` sẽ tự xuất hiện trên menu, không
 - Chống nộp lặp vượt số lượng; khách chỉ xem yêu cầu của mình.
 - Trạng thái gồm pending/reviewing/approved/rejected/received/refunded/replaced; User không tự hoàn tiền.
 
-## 20. Quản trị dữ liệu
+## 20. Cách U16 hoạt động
+
+- Tạo thông báo khi đặt đơn và gửi yêu cầu đổi/trả; khách đánh dấu đã đọc và mở đúng liên kết liên quan.
+- Ticket có danh mục, tiêu đề, hội thoại, trạng thái và file JPG/PNG/PDF tối đa 3 MB.
+- Chỉ chủ ticket được xem/gửi phản hồi; ticket đóng không nhận tin mới.
+- Mỗi session chỉ tạo tối đa 3 ticket/giờ để hạn chế spam.
+- FAQ là trang công khai; email/số điện thoại khách không xuất hiện trong danh sách công khai.
+
+## 21. Quản trị dữ liệu
 
 Tạo tài khoản admin:
 
@@ -276,7 +288,7 @@ python manage.py createsuperuser
 
 Vào `/admin/` để thêm/sửa danh mục, thương hiệu, sản phẩm, biến thể, ảnh phụ và banner. Khi thêm sản phẩm mới, cần tạo ít nhất một biến thể đang hoạt động để sản phẩm xuất hiện trong trang danh mục U02.
 
-## 21. Kiểm tra dự án
+## 22. Kiểm tra dự án
 
 ```powershell
 python manage.py check
@@ -286,13 +298,13 @@ python manage.py test
 
 Toàn bộ test hiện kiểm tra U01–U08, gồm giỏ hàng, checkout item đã chọn, snapshot địa chỉ, voucher/phí ship, tồn kho, rollback, IDOR và chống tạo đơn trùng.
 
-## 22. Lỗi thường gặp
+## 23. Lỗi thường gặp
 
 - Không kết nối PostgreSQL: kiểm tra service PostgreSQL, database, mật khẩu và port `5432`.
 - Báo thiếu `DB_PASSWORD`: kiểm tra file `.env` có nằm cạnh `manage.py` và không có dấu `\` ở cuối dòng.
 - CSS chưa cập nhật: nhấn `Ctrl + F5` và kiểm tra đang sửa đúng CSS của trang.
 - Ảnh không hiện: chạy lại `python manage.py seed_products --refresh-images`; giao diện có ảnh mặc định nếu file ảnh lỗi.
 
-## 23. Quy ước phát triển tiếp
+## 24. Quy ước phát triển tiếp
 
 Mỗi nhóm chức năng lớn tạo một Django app riêng, ví dụ sản phẩm thuộc app `Product`, tài khoản thuộc app `Login`. Mỗi file HTML dùng một file CSS riêng và các trang con phải `{% extends 'base.html' %}`, chỉ thay nội dung trong `{% block content %}`.

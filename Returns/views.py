@@ -39,6 +39,8 @@ def return_create(request,order_code):
             result=ReturnRequest.objects.create(user=user,order=order,request_type=kind,reason=reason)
             ReturnItem.objects.create(return_request=result,order_item=item,quantity=quantity)
             for image in files:ReturnEvidence.objects.create(return_request=result,image=image)
+            from Support.models import Notification
+            Notification.objects.create(user=user,title='Đã nhận yêu cầu đổi/trả',message=f'Yêu cầu #{result.id} đang chờ xử lý.',link=f'/account/returns/{result.id}/')
             messages.success(request,'Đã gửi yêu cầu đổi/trả.')
             return redirect('return_detail',request_id=result.id)
     return render(request,'Returns/ReturnCreate.html',{'order':order,'eligible':eligible})

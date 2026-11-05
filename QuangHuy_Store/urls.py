@@ -29,6 +29,7 @@ urlpatterns = [
     path('', include('Reviews.urls')),
     path('', include('Shipping.urls')),
     path('', include('Returns.urls')),
+    path('', include('Support.urls')),
     path('admin/', admin.site.urls),
 ]
 
