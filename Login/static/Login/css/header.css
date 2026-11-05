@@ -142,35 +142,62 @@
 
 @media (max-width: 760px) {
     .site-header {
-        grid-template-columns: 1fr auto;
-        padding: 28px 22px;
+        position: relative;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 18px;
+        width: 100%;
+        overflow: hidden;
+        padding: 28px 16px;
     }
 
     .brand {
-        font-size: 21px;
+        font-size: 19px;
     }
 
     .main-nav {
+        grid-column: 1;
+        grid-row: 3;
+        width: 100%;
+        min-width: 0;
         justify-content: flex-start;
         gap: 24px;
         overflow-x: auto;
     }
 
     .utility-nav {
-        gap: 10px;
+        position: static;
+        grid-column: 1;
+        grid-row: 2;
+        justify-content: flex-start;
+        gap: 7px;
     }
 
     .header-search {
-        width: 42px;
+        width: 28px;
+        border-bottom: 0;
+    }
+
+    .header-search button,
+    .utility-link {
+        width: 25px;
+        height: 25px;
+        flex-basis: 25px;
+    }
+
+    .header-search svg,
+    .utility-link svg {
+        width: 21px;
+        min-width: 21px;
+        height: 21px;
     }
 
     .header-search input {
         position: absolute;
-        left: 22px;
-        right: 22px;
+        left: 16px;
+        right: 16px;
         top: 88px;
         display: none;
-        width: calc(100% - 44px);
+        width: calc(100% - 32px);
         padding: 12px;
         background: var(--ivory-100);
     }

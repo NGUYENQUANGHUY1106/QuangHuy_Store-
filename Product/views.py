@@ -1,20 +1,62 @@
+from decimal import Decimal, InvalidOperation
+
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Min, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 
-from .models import Banner, Category, Product
+from .models import Banner, Brand, Category, Product, ProductVariant
 
 
-def home_page(request, category_slug=None):
-    products = Product.objects.filter(is_active=True).select_related('category', 'brand')
-    selected_category = None
+def active_products():
+    return Product.objects.filter(
+        is_active=True,
+        category__is_active=True,
+    ).filter(
+        Q(brand__isnull=True) | Q(brand__is_active=True),
+    ).select_related('category', 'brand').annotate(
+        variant_min_price=Min(
+            'variants__price',
+            filter=Q(variants__is_active=True),
+        ),
+    ).order_by('-created_at', 'id')
+
+
+def category_and_children_ids(category):
+    category_ids = [category.id]
+    pending_ids = [category.id]
+
+    while pending_ids:
+        child_ids = list(
+            Category.objects.filter(
+                parent_id__in=pending_ids,
+                is_active=True,
+            ).values_list('id', flat=True)
+        )
+        category_ids.extend(child_ids)
+        pending_ids = child_ids
+
+    return category_ids
+
+
+def parse_price(value, label, errors):
+    if value == '':
+        return None
+    try:
+        price = Decimal(value)
+    except InvalidOperation:
+        errors.append(f'{label} không hợp lệ.')
+        return None
+    if not price.is_finite() or price < 0 or price > Decimal('999999999999'):
+        errors.append(f'{label} phải nằm trong khoảng từ 0 đến 999.999.999.999.')
+        return None
+    return price
+
+
+def home_page(request):
+    products = active_products()
     search_query = request.GET.get('q', '').strip()
-
-    if category_slug:
-        selected_category = get_object_or_404(Category, slug=category_slug, is_active=True)
-        products = products.filter(category=selected_category)
 
     if request.GET.get('new') == '1':
         products = products.filter(is_new=True)
@@ -35,30 +77,136 @@ def home_page(request, category_slug=None):
         Q(ends_at__isnull=True) | Q(ends_at__gte=now),
     ).first()
 
-    active_products = Product.objects.filter(is_active=True).select_related('category', 'brand')
+    homepage_products = active_products()
 
     return render(request, 'Product/Home.html', {
         'banner': banner,
-        'featured_categories': Category.objects.filter(is_active=True, is_featured=True)[:6],
-        'new_products': active_products.filter(is_new=True)[:6],
-        'best_sellers': active_products.filter(is_best_seller=True)[:6],
-        'promotion_products': active_products.filter(discount_percent__gt=0)[:6],
+        'featured_categories': Category.objects.filter(
+            is_active=True,
+            is_featured=True,
+            parent__isnull=True,
+        )[:6],
+        'new_products': homepage_products.filter(is_new=True)[:6],
+        'best_sellers': homepage_products.filter(is_best_seller=True)[:6],
+        'promotion_products': homepage_products.filter(discount_percent__gt=0)[:6],
         'page_obj': page_obj,
         'search_query': search_query,
-        'selected_category': selected_category,
+    })
+
+
+def category_page(request, category_slug):
+    category = get_object_or_404(Category, slug=category_slug, is_active=True)
+    category_ids = category_and_children_ids(category)
+    products = active_products().filter(category_id__in=category_ids)
+
+    selected_brands = request.GET.getlist('brand')
+    selected_sizes = request.GET.getlist('size')
+    selected_colors = request.GET.getlist('color')
+    selected_gender = request.GET.get('gender', '')
+    in_stock = request.GET.get('in_stock') == '1'
+    sort = request.GET.get('sort', 'newest')
+    min_price_text = request.GET.get('min_price', '').strip()
+    max_price_text = request.GET.get('max_price', '').strip()
+    errors = []
+
+    if selected_brands:
+        products = products.filter(brand__slug__in=selected_brands)
+
+    valid_genders = {value for value, _ in Product.GENDER_CHOICES}
+    if selected_gender:
+        if selected_gender in valid_genders:
+            products = products.filter(gender=selected_gender)
+        else:
+            errors.append('Giới tính không hợp lệ.')
+            selected_gender = ''
+
+    min_price = parse_price(min_price_text, 'Giá thấp nhất', errors)
+    max_price = parse_price(max_price_text, 'Giá cao nhất', errors)
+    valid_price_range = not (min_price is not None and max_price is not None and min_price > max_price)
+    if not valid_price_range:
+        errors.append('Giá thấp nhất phải nhỏ hơn hoặc bằng giá cao nhất.')
+
+    variant_filter = Q(variants__is_active=True)
+    if selected_sizes:
+        variant_filter &= Q(variants__size__in=selected_sizes)
+    if selected_colors:
+        variant_filter &= Q(variants__color__in=selected_colors)
+    if in_stock:
+        variant_filter &= Q(variants__stock__gt=0)
+    if valid_price_range:
+        if min_price is not None:
+            variant_filter &= Q(variants__price__gte=min_price)
+        if max_price is not None:
+            variant_filter &= Q(variants__price__lte=max_price)
+
+    products = products.filter(variant_filter).distinct()
+
+    sort_options = {
+        'newest': '-created_at',
+        'price_asc': 'variant_min_price',
+        'price_desc': '-variant_min_price',
+        'popular': '-popularity',
+    }
+    if sort not in sort_options:
+        errors.append('Kiểu sắp xếp không hợp lệ.')
+        sort = 'newest'
+    products = products.order_by(sort_options[sort], 'id')
+
+    paginator = Paginator(products, 6)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    variant_options = ProductVariant.objects.filter(
+        product__category_id__in=category_ids,
+        product__is_active=True,
+        is_active=True,
+    )
+    available_sizes = variant_options.values_list('size', flat=True).distinct().order_by('size')
+    available_colors = variant_options.values_list('color', flat=True).distinct().order_by('color')
+    available_brands = Brand.objects.filter(
+        is_active=True,
+        products__category_id__in=category_ids,
+        products__is_active=True,
+    ).distinct()
+
+    breadcrumbs = []
+    current = category
+    while current:
+        breadcrumbs.insert(0, current)
+        current = current.parent
+
+    query_params = request.GET.copy()
+    query_params.pop('page', None)
+
+    return render(request, 'Product/Category.html', {
+        'selected_category': category,
+        'breadcrumbs': breadcrumbs,
+        'category_links': Category.objects.filter(is_active=True, parent=category.parent),
+        'available_brands': available_brands,
+        'available_sizes': available_sizes,
+        'available_colors': available_colors,
+        'gender_choices': Product.GENDER_CHOICES,
+        'selected_brands': selected_brands,
+        'selected_sizes': selected_sizes,
+        'selected_colors': selected_colors,
+        'selected_gender': selected_gender,
+        'min_price': min_price_text,
+        'max_price': max_price_text,
+        'in_stock': in_stock,
+        'sort': sort,
+        'filter_errors': errors,
+        'page_obj': page_obj,
+        'pagination_query': query_params.urlencode(),
     })
 
 
 def product_detail(request, product_slug):
     product = get_object_or_404(
-        Product.objects.select_related('category', 'brand').prefetch_related('images'),
+        active_products().prefetch_related('images', 'variants'),
         slug=product_slug,
-        is_active=True,
     )
-    related_products = Product.objects.filter(
+    related_products = active_products().filter(
         category=product.category,
-        is_active=True,
-    ).exclude(id=product.id).select_related('category', 'brand')[:4]
+    ).exclude(id=product.id)[:4]
 
     return render(request, 'Product/Detail.html', {
         'product': product,

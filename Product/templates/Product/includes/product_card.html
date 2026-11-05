@@ -12,6 +12,8 @@
     <h3><a href="{% url 'product_detail' product.slug %}">{{ product.name|upper }}</a></h3>
     {% if product.discount_percent %}
     <div class="product-card__prices"><strong>{{ product.sale_price|vnd }}</strong><del>{{ product.price|vnd }}</del></div>
+    {% elif product.variant_min_price %}
+    <strong>Từ {{ product.variant_min_price|vnd }}</strong>
     {% else %}
     <strong>{{ product.price|vnd }}</strong>
     {% endif %}

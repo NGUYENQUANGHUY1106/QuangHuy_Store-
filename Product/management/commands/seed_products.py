@@ -5,7 +5,15 @@ from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
 from PIL import Image
 
-from Product.models import Banner, Brand, Category, Product, ProductImage, vietnamese_slug
+from Product.models import (
+    Banner,
+    Brand,
+    Category,
+    Product,
+    ProductImage,
+    ProductVariant,
+    vietnamese_slug,
+)
 
 
 BOOT_IMAGES = [
@@ -229,6 +237,8 @@ class Command(BaseCommand):
                 product.is_new = index < 6
                 product.is_best_seller = index % 3 == 0
                 product.discount_percent = 20 if index % 5 == 0 else (10 if index % 4 == 0 else 0)
+                product.gender = ['men', 'women', 'unisex'][index % 3]
+                product.popularity = max(1, 1000 - index * 17 - order * 5)
                 product.is_active = True
 
                 if refresh_images or not product.image:
@@ -256,6 +266,29 @@ class Command(BaseCommand):
                     product.source_url = preferred_image
 
                 product.save()
+
+                if category.slug == 'giay-bong-da':
+                    sizes = ['38', '39', '40', '41', '42', '43']
+                else:
+                    sizes = ['S', 'M', 'L', 'XL', 'XXL']
+                colors = ['Đen', 'Trắng', 'Đỏ', 'Xanh dương']
+                variant_skus = []
+                for variant_index in range(4):
+                    sku = f'QH-{product.id:04d}-{variant_index + 1}'
+                    variant_skus.append(sku)
+                    ProductVariant.objects.update_or_create(
+                        sku=sku,
+                        defaults={
+                            'product': product,
+                            'size': sizes[(index + variant_index) % len(sizes)],
+                            'color': colors[variant_index],
+                            'price': price + variant_index * 100000,
+                            'stock': 0 if (index + variant_index) % 9 == 0 else 5 + variant_index * 3,
+                            'is_active': True,
+                        },
+                    )
+                product.variants.exclude(sku__in=variant_skus).delete()
+
                 if product.image:
                     ProductImage.objects.update_or_create(
                         product=product,

@@ -7,6 +7,13 @@ def vietnamese_slug(value):
 
 
 class Category(models.Model):
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        related_name='children',
+        null=True,
+        blank=True,
+    )
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(max_length=120, unique=True, blank=True)
     order = models.PositiveIntegerField(default=0)
@@ -45,6 +52,12 @@ class Brand(models.Model):
 
 
 class Product(models.Model):
+    GENDER_CHOICES = [
+        ('unisex', 'Unisex'),
+        ('men', 'Nam'),
+        ('women', 'Nữ'),
+    ]
+
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='products')
     brand = models.ForeignKey(
         Brand,
@@ -62,6 +75,8 @@ class Product(models.Model):
     is_new = models.BooleanField(default=True)
     is_best_seller = models.BooleanField(default=False)
     discount_percent = models.PositiveIntegerField(default=0)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='unisex')
+    popularity = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -82,6 +97,33 @@ class Product(models.Model):
         if not self.discount_percent:
             return self.price
         return self.price * (100 - self.discount_percent) / 100
+
+
+class ProductVariant(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants')
+    sku = models.CharField(max_length=80, unique=True)
+    size = models.CharField(max_length=20)
+    color = models.CharField(max_length=50)
+    price = models.DecimalField(max_digits=12, decimal_places=0)
+    stock = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'product_variant'
+        ordering = ['price', 'size', 'color']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['product', 'size', 'color'],
+                name='unique_product_size_color',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.product.name} - {self.size} - {self.color}'
+
+    @property
+    def in_stock(self):
+        return self.is_active and self.stock > 0
 
 
 class ProductImage(models.Model):

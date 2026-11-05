@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ selected_category.name }} | QuangHuy Store{% endblock %}
+{% block meta_description %}Lọc sản phẩm {{ selected_category.name }} theo thương hiệu, giới tính, size, màu, giá và tồn kho.{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'Product/css/category.css' %}">{% endblock %}
+
+{% block content %}
+<div class="category-loading" id="category-loading" hidden>
+    <span></span>
+    <strong>Đang lọc sản phẩm...</strong>
+</div>
+
+<nav class="category-breadcrumb" aria-label="Đường dẫn">
+    <a href="{% url 'home' %}">Trang chủ</a>
+    {% for item in breadcrumbs %}
+        <span>/</span>
+        {% if forloop.last %}<strong>{{ item.name }}</strong>{% else %}<a href="{% url 'product_by_category' item.slug %}">{{ item.name }}</a>{% endif %}
+    {% endfor %}
+</nav>
+
+<section class="category-page">
+    <header class="category-heading">
+        <div>
+            <p>QUANGHUY STORE / DANH MỤC</p>
+            <h1>{{ selected_category.name|upper }}</h1>
+        </div>
+        <strong>{{ page_obj.paginator.count }} KẾT QUẢ</strong>
+    </header>
+
+    <div class="category-layout">
+        <aside>
+            <details class="filter-panel" open>
+                <summary>BỘ LỌC SẢN PHẨM</summary>
+                <form class="filter-form" method="get" id="category-filter-form">
+                    <fieldset>
+                        <legend>Môn thể thao / Danh mục</legend>
+                        {% for item in category_links %}
+                        <a class="category-filter-link{% if item == selected_category %} is-active{% endif %}" href="{% url 'product_by_category' item.slug %}">{{ item.name }}</a>
+                        {% endfor %}
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>Thương hiệu</legend>
+                        {% for brand in available_brands %}
+                        <label><input type="checkbox" name="brand" value="{{ brand.slug }}" {% if brand.slug in selected_brands %}checked{% endif %}> {{ brand.name }}</label>
+                        {% endfor %}
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>Giới tính</legend>
+                        <select name="gender">
+                            <option value="">Tất cả</option>
+                            {% for value, label in gender_choices %}<option value="{{ value }}" {% if selected_gender == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                        </select>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>Size</legend>
+                        <div class="filter-options filter-options--size">
+                            {% for size in available_sizes %}
+                            <label><input type="checkbox" name="size" value="{{ size }}" {% if size in selected_sizes %}checked{% endif %}><span>{{ size }}</span></label>
+                            {% endfor %}
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>Màu sắc</legend>
+                        {% for color in available_colors %}
+                        <label><input type="checkbox" name="color" value="{{ color }}" {% if color in selected_colors %}checked{% endif %}> {{ color }}</label>
+                        {% endfor %}
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>Khoảng giá</legend>
+                        <div class="price-range">
+                            <input type="number" name="min_price" min="0" step="1000" value="{{ min_price }}" placeholder="Từ">
+                            <span>–</span>
+                            <input type="number" name="max_price" min="0" step="1000" value="{{ max_price }}" placeholder="Đến">
+                        </div>
+                    </fieldset>
+
+                    <label class="stock-filter"><input type="checkbox" name="in_stock" value="1" {% if in_stock %}checked{% endif %}> Chỉ sản phẩm còn hàng</label>
+
+                    <label class="sort-field">Sắp xếp
+                        <select name="sort">
+                            <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Mới nhất</option>
+                            <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Giá tăng dần</option>
+                            <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Giá giảm dần</option>
+                            <option value="popular" {% if sort == 'popular' %}selected{% endif %}>Phổ biến nhất</option>
+                        </select>
+                    </label>
+
+                    <button type="submit">ÁP DỤNG BỘ LỌC</button>
+                    <a class="clear-filters" href="{% url 'product_by_category' selected_category.slug %}">XÓA TẤT CẢ</a>
+                </form>
+            </details>
+        </aside>
+
+        <div class="category-results">
+            {% if filter_errors %}
+            <div class="filter-errors" role="alert">{% for error in filter_errors %}<p>{{ error }}</p>{% endfor %}</div>
+            {% endif %}
+
+            <div class="category-product-grid">
+                {% for product in page_obj %}
+                    {% include 'Product/includes/product_card.html' %}
+                {% empty %}
+                <div class="category-empty">
+                    <h2>KHÔNG CÓ SẢN PHẨM PHÙ HỢP</h2>
+                    <p>Hãy bỏ bớt điều kiện lọc hoặc xem lại khoảng giá.</p>
+                    <a href="{% url 'product_by_category' selected_category.slug %}">XÓA BỘ LỌC</a>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if page_obj.paginator.num_pages > 1 %}
+            <nav class="category-pagination" aria-label="Phân trang sản phẩm">
+                {% if page_obj.has_previous %}<a href="?{% if pagination_query %}{{ pagination_query|force_escape }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">← TRƯỚC</a>{% endif %}
+                {% for number in page_obj.paginator.page_range %}
+                    {% if number == page_obj.number %}<span>{{ number }}</span>{% else %}<a href="?{% if pagination_query %}{{ pagination_query|force_escape }}&amp;{% endif %}page={{ number }}">{{ number }}</a>{% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}<a href="?{% if pagination_query %}{{ pagination_query|force_escape }}&amp;{% endif %}page={{ page_obj.next_page_number }}">SAU →</a>{% endif %}
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}<script src="{% static 'Product/js/category.js' %}"></script>{% endblock %}
