@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Tài khoản | QuangHuy Store{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'Login/css/account.css' %}">{% endblock %}
+{% block content %}
+<section class="account-page">
+    <header><p>QUANGHUY STORE / TÀI KHOẢN</p><h1>CHÀO, {{ account_user.username|upper }}</h1></header>
+    <div class="account-card">
+        {% if account_user.avatar %}<img src="{{ account_user.avatar.url }}" alt="Avatar {{ account_user.username }}">{% endif %}
+        <dl><div><dt>Họ tên</dt><dd>{{ account_user.username }}</dd></div><div><dt>Email</dt><dd>{{ account_user.email }}</dd></div><div><dt>Số điện thoại</dt><dd>{{ account_user.phone }}</dd></div></dl>
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">ĐĂNG XUẤT</button></form>
+    </div>
+</section>
+{% endblock %}

@@ -1,6 +1,6 @@
 # QuangHuy Store
 
-Website bán giày và quần áo bóng đá bằng Django + PostgreSQL. U01–U04 đã hoàn thành trang chủ, danh mục/bộ lọc, tìm kiếm và chi tiết sản phẩm theo biến thể.
+Website bán giày và quần áo bóng đá bằng Django + PostgreSQL. U01–U05 đã hoàn thành trang chủ, danh mục/bộ lọc, tìm kiếm, chi tiết sản phẩm theo biến thể và tài khoản khách hàng.
 
 ## 1. Cài đặt
 
@@ -73,6 +73,10 @@ Mở `http://127.0.0.1:8000/`.
 | `/product/<slug>/add-to-cart/` | POST biến thể và số lượng đã được kiểm tra |
 | `/login/` | Đăng nhập |
 | `/register/` | Đăng ký |
+| `/logout/` | POST đăng xuất, vẫn giữ giỏ hàng trong session |
+| `/account/` | Trang tài khoản, yêu cầu đăng nhập |
+| `/forgot-password/` | Yêu cầu liên kết đặt lại mật khẩu |
+| `/reset-password/<token>/` | Đặt mật khẩu mới bằng token dùng một lần |
 | `/admin/` | Trang quản trị Django |
 
 Đăng nhập thành công sẽ chuyển về `/`.
@@ -125,7 +129,18 @@ Danh mục mới có `is_active=True` sẽ tự xuất hiện trên menu, không
 - CTA mua ngay lưu biến thể đã kiểm tra để U08 sử dụng khi xây checkout.
 - Có bảng quy đổi size giày EU/US/UK và link chính sách đổi size.
 
-## 9. Quản trị dữ liệu
+## 9. Cách U05 hoạt động
+
+- Đăng ký kiểm tra đủ dữ liệu, email hợp lệ, số điện thoại 10 số, avatar là ảnh và mật khẩu có ít nhất 8 ký tự gồm chữ và số.
+- Email và tên tài khoản không được trùng; mật khẩu luôn được băm bằng bộ mã hóa của Django trước khi lưu.
+- Đăng nhập tạo session mới để tránh session fixation, hỗ trợ “ghi nhớ đăng nhập” và chỉ chuyển tới tham số `next` nằm trong chính website.
+- Sau 10 lần đăng nhập sai trong 5 phút, session bị giới hạn tạm thời để giảm thử mật khẩu tự động.
+- `/account/` là trang được bảo vệ. Đăng xuất chỉ nhận POST có CSRF và vẫn giữ giỏ hàng khách trong session.
+- Quên mật khẩu luôn trả cùng một thông báo dù email có tồn tại hay không, tránh làm lộ danh sách tài khoản.
+- Token đặt lại mật khẩu chỉ lưu bản băm trong database, hết hạn sau 30 phút và chỉ dùng được một lần.
+- Email phát triển được in ra terminal bằng `console.EmailBackend`. Có thể đổi `EMAIL_BACKEND` bằng biến môi trường khi cấu hình dịch vụ gửi thư thật.
+
+## 10. Quản trị dữ liệu
 
 Tạo tài khoản admin:
 
@@ -135,7 +150,7 @@ python manage.py createsuperuser
 
 Vào `/admin/` để thêm/sửa danh mục, thương hiệu, sản phẩm, biến thể, ảnh phụ và banner. Khi thêm sản phẩm mới, cần tạo ít nhất một biến thể đang hoạt động để sản phẩm xuất hiện trong trang danh mục U02.
 
-## 10. Kiểm tra dự án
+## 11. Kiểm tra dự án
 
 ```powershell
 python manage.py check
@@ -143,15 +158,15 @@ python manage.py makemigrations --check --dry-run
 python manage.py test
 ```
 
-35 test hiện kiểm tra U01–U04: phân trang, bộ lọc, tìm kiếm, API gợi ý, API biến thể, giá khác giá mặc định, biến thể ẩn/hết hàng, giới hạn tồn kho, thêm giỏ, mua ngay và URL sai.
+Toàn bộ test hiện kiểm tra U01–U05: phân trang, bộ lọc, tìm kiếm, API gợi ý, API biến thể, giá/tồn kho, thêm giỏ, đăng ký, đăng nhập, giới hạn đăng nhập sai, chuyển hướng an toàn, đăng xuất và token đặt lại mật khẩu hết hạn/dùng một lần.
 
-## 11. Lỗi thường gặp
+## 12. Lỗi thường gặp
 
 - Không kết nối PostgreSQL: kiểm tra service PostgreSQL, database, mật khẩu và port `5432`.
 - Báo thiếu `DB_PASSWORD`: kiểm tra file `.env` có nằm cạnh `manage.py` và không có dấu `\` ở cuối dòng.
 - CSS chưa cập nhật: nhấn `Ctrl + F5` và kiểm tra đang sửa đúng CSS của trang.
 - Ảnh không hiện: chạy lại `python manage.py seed_products --refresh-images`; giao diện có ảnh mặc định nếu file ảnh lỗi.
 
-## 12. Quy ước phát triển tiếp
+## 13. Quy ước phát triển tiếp
 
 Mỗi nhóm chức năng lớn tạo một Django app riêng, ví dụ sản phẩm thuộc app `Product`, tài khoản thuộc app `Login`. Mỗi file HTML dùng một file CSS riêng và các trang con phải `{% extends 'base.html' %}`, chỉ thay nội dung trong `{% block content %}`.

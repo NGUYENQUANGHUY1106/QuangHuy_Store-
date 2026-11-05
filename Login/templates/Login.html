@@ -23,6 +23,7 @@
 
             <form class="auth-form" method="post">
                 {% csrf_token %}
+                <input type="hidden" name="next" value="{{ next|default:'' }}">
 
                 <div class="form-field">
                     <label for="login-email">Email</label>
@@ -40,7 +41,7 @@
                         <span>Ghi nhớ tài khoản</span>
                     </label>
                     <span aria-hidden="true">·</span>
-                    <a href="#">Quên mật khẩu?</a>
+                    <a href="{% url 'forgot_password' %}">Quên mật khẩu?</a>
                 </div>
 
                 <button class="primary-button" type="submit">ĐĂNG NHẬP</button>

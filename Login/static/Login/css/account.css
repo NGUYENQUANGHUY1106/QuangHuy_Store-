@@ -1,0 +1,13 @@
+.account-page { max-width: 1000px; min-height: 650px; margin: auto; padding: 70px 40px; }
+.account-page header { padding-bottom: 35px; border-bottom: 1px solid var(--line); }
+.account-page header p { color: var(--stone-400); font-size: 11px; font-weight: 700; }
+.account-page h1 { margin: 15px 0; font-size: clamp(40px, 6vw, 72px); }
+.account-card { display: grid; grid-template-columns: 170px 1fr; gap: 40px; padding-top: 40px; }
+.account-card img { width: 170px; height: 170px; object-fit: cover; }
+.account-card dl { margin: 0; }
+.account-card dl div { display: flex; justify-content: space-between; gap: 20px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.account-card dt { font-weight: 700; }
+.account-card dd { margin: 0; }
+.account-card form { grid-column: 2; }
+.account-card button { padding: 14px 25px; border: 0; background: var(--charcoal-900); color: white; cursor: pointer; font-weight: 700; }
+@media(max-width:600px){.account-card{grid-template-columns:1fr}.account-card form{grid-column:1}}
