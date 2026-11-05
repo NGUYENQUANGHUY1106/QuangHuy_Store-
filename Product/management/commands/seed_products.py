@@ -283,6 +283,7 @@ class Command(BaseCommand):
                             'size': sizes[(index + variant_index) % len(sizes)],
                             'color': colors[variant_index],
                             'price': price + variant_index * 100000,
+                            'image': product.image.name if product.image else '',
                             'stock': 0 if (index + variant_index) % 9 == 0 else 5 + variant_index * 3,
                             'is_active': True,
                         },

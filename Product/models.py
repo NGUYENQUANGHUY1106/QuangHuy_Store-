@@ -105,6 +105,7 @@ class ProductVariant(models.Model):
     size = models.CharField(max_length=20)
     color = models.CharField(max_length=50)
     price = models.DecimalField(max_digits=12, decimal_places=0)
+    image = models.ImageField(upload_to='products/variants/', blank=True)
     stock = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
 

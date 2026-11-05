@@ -361,3 +361,115 @@ class ProductSearchTests(TestCase):
         limited_response = self.client.get(reverse('product_suggest'), {'q': 'Nike'})
 
         self.assertEqual(limited_response.status_code, 429)
+
+
+class ProductVariantDetailTests(TestCase):
+    def setUp(self):
+        brand = Brand.objects.create(name='Puma', slug='puma')
+        category = Category.objects.create(name='Giày thi đấu', slug='giay-thi-dau')
+        self.product = Product.objects.create(
+            category=category,
+            brand=brand,
+            name='Giày Puma Future',
+            slug='giay-puma-future',
+            price=3000000,
+            image='products/puma.jpg',
+            discount_percent=10,
+        )
+        self.available = ProductVariant.objects.create(
+            product=self.product,
+            sku='PUMA-42-DEN',
+            size='42',
+            color='Đen',
+            price=3500000,
+            stock=3,
+        )
+        self.out_of_stock = ProductVariant.objects.create(
+            product=self.product,
+            sku='PUMA-43-TRANG',
+            size='43',
+            color='Trắng',
+            price=3700000,
+            stock=0,
+        )
+        self.inactive = ProductVariant.objects.create(
+            product=self.product,
+            sku='PUMA-44-DO',
+            size='44',
+            color='Đỏ',
+            price=3800000,
+            stock=5,
+            is_active=False,
+        )
+
+    def test_detail_has_variant_controls_gallery_and_size_guide(self):
+        response = self.client.get(reverse('product_detail', args=[self.product.slug]))
+
+        self.assertContains(response, 'Chọn size')
+        self.assertContains(response, 'Chọn màu')
+        self.assertContains(response, 'HƯỚNG DẪN SIZE GIÀY')
+        self.assertContains(response, reverse('product_variants', args=[self.product.slug]))
+
+    def test_variant_api_returns_price_stock_and_ignores_inactive(self):
+        response = self.client.get(reverse('product_variants', args=[self.product.slug]))
+        payload = response.json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(payload['variants']), 2)
+        self.assertEqual(payload['variants'][0]['price'], 3500000)
+        self.assertEqual(payload['variants'][0]['sale_price'], 3150000)
+        self.assertNotContains(response, self.inactive.sku)
+
+    def test_add_to_cart_uses_server_variant_and_updates_badge_count(self):
+        response = self.client.post(
+            reverse('add_to_cart', args=[self.product.slug]),
+            {'variant_id': self.available.id, 'quantity': 2, 'action': 'add'},
+            follow=True,
+        )
+
+        session = self.client.session
+        self.assertEqual(session['cart'][str(self.available.id)], 2)
+        self.assertEqual(session['cart_count'], 2)
+        self.assertContains(response, 'Đã thêm sản phẩm vào giỏ hàng')
+
+    def test_out_of_stock_and_excess_quantity_are_rejected(self):
+        out_response = self.client.post(
+            reverse('add_to_cart', args=[self.product.slug]),
+            {'variant_id': self.out_of_stock.id, 'quantity': 1},
+            follow=True,
+        )
+        excess_response = self.client.post(
+            reverse('add_to_cart', args=[self.product.slug]),
+            {'variant_id': self.available.id, 'quantity': 4},
+            follow=True,
+        )
+
+        self.assertNotIn('cart', self.client.session)
+        self.assertContains(out_response, 'chỉ còn 0 trong kho')
+        self.assertContains(excess_response, 'chỉ còn 3 trong kho')
+
+    def test_invalid_variant_and_quantity_are_rejected(self):
+        invalid_variant = self.client.post(
+            reverse('add_to_cart', args=[self.product.slug]),
+            {'variant_id': 999999, 'quantity': 1},
+            follow=True,
+        )
+        invalid_quantity = self.client.post(
+            reverse('add_to_cart', args=[self.product.slug]),
+            {'variant_id': self.available.id, 'quantity': 0},
+            follow=True,
+        )
+
+        self.assertContains(invalid_variant, 'không hợp lệ')
+        self.assertContains(invalid_quantity, 'phải lớn hơn 0')
+        self.assertNotIn('cart', self.client.session)
+
+    def test_buy_now_stores_validated_variant(self):
+        response = self.client.post(
+            reverse('add_to_cart', args=[self.product.slug]),
+            {'variant_id': self.available.id, 'quantity': 1, 'action': 'buy_now'},
+            follow=True,
+        )
+
+        self.assertEqual(self.client.session['buy_now_variant_id'], self.available.id)
+        self.assertContains(response, 'Bước thanh toán sẽ được hoàn thiện ở U08')

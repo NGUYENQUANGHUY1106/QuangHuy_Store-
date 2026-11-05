@@ -1,11 +1,13 @@
 from decimal import Decimal, InvalidOperation
 
+from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Min, Q
 from django.http import Http404, JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.http import require_GET, require_POST
 
 from .models import Banner, Brand, Category, Product, ProductVariant
 
@@ -343,6 +345,62 @@ def product_detail(request, product_slug):
         'product': product,
         'related_products': related_products,
     })
+
+
+@require_GET
+def product_variants(request, product_slug):
+    product = get_object_or_404(active_products(), slug=product_slug)
+    variants = product.variants.filter(is_active=True).order_by('size', 'color')
+    results = []
+    for variant in variants:
+        sale_price = variant.price * (100 - product.discount_percent) / 100
+        results.append({
+            'id': variant.id,
+            'sku': variant.sku,
+            'size': variant.size,
+            'color': variant.color,
+            'price': int(variant.price),
+            'sale_price': int(sale_price),
+            'stock': variant.stock,
+            'image': variant.image.url if variant.image else (product.image.url if product.image else ''),
+        })
+    return JsonResponse({'product': product.name, 'variants': results})
+
+
+@require_POST
+def add_to_cart(request, product_slug):
+    product = get_object_or_404(active_products(), slug=product_slug)
+    try:
+        variant_id = int(request.POST.get('variant_id', ''))
+        quantity = int(request.POST.get('quantity', '1'))
+    except (TypeError, ValueError):
+        messages.error(request, 'Vui lòng chọn đầy đủ size và màu sắc.')
+        return redirect('product_detail', product_slug=product.slug)
+
+    variant = product.variants.filter(id=variant_id, is_active=True).first()
+    if variant is None:
+        messages.error(request, 'Biến thể đã chọn không hợp lệ.')
+        return redirect('product_detail', product_slug=product.slug)
+    if quantity < 1:
+        messages.error(request, 'Số lượng phải lớn hơn 0.')
+        return redirect('product_detail', product_slug=product.slug)
+
+    cart = request.session.get('cart', {})
+    current_quantity = int(cart.get(str(variant.id), 0))
+    if variant.stock <= 0 or current_quantity + quantity > variant.stock:
+        messages.error(request, f'Sản phẩm chỉ còn {variant.stock} trong kho.')
+        return redirect('product_detail', product_slug=product.slug)
+
+    cart[str(variant.id)] = current_quantity + quantity
+    request.session['cart'] = cart
+    request.session['cart_count'] = sum(int(item_quantity) for item_quantity in cart.values())
+
+    if request.POST.get('action') == 'buy_now':
+        request.session['buy_now_variant_id'] = variant.id
+        messages.success(request, 'Đã xác nhận sản phẩm. Bước thanh toán sẽ được hoàn thiện ở U08.')
+    else:
+        messages.success(request, 'Đã thêm sản phẩm vào giỏ hàng.')
+    return redirect('product_detail', product_slug=product.slug)
 
 
 def information_page(request, page_slug):

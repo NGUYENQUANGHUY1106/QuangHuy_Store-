@@ -12,39 +12,64 @@
     <span>{{ product.name }}</span>
 </nav>
 
-<section class="product-detail">
+{% if messages %}<div class="detail-messages">{% for message in messages %}<p class="{{ message.tags }}">{{ message }}</p>{% endfor %}</div>{% endif %}
+
+<section class="product-detail" data-variants-url="{% url 'product_variants' product.slug %}">
     <div class="product-detail__gallery">
-        {% if product.image %}
-        <img class="product-detail__main-image" src="{{ product.image.url }}" alt="{{ product.name }}" onerror="this.onerror=null;this.src='{% static 'Product/images/product-placeholder.svg' %}'">
-        {% else %}
-        <img class="product-detail__main-image" src="{% static 'Product/images/product-placeholder.svg' %}" alt="Chưa có ảnh {{ product.name }}">
-        {% endif %}
-        {% for item in product.images.all %}
-            {% if item.image.name != product.image.name %}<img src="{{ item.image.url }}" alt="{{ item.alt_text|default:product.name }}">{% endif %}
-        {% endfor %}
+        <div class="product-detail__zoom">
+            {% if product.image %}<img id="detail-main-image" src="{{ product.image.url }}" alt="{{ product.name }}" onerror="this.onerror=null;this.src='{% static 'Product/images/product-placeholder.svg' %}'">
+            {% else %}<img id="detail-main-image" src="{% static 'Product/images/product-placeholder.svg' %}" alt="Chưa có ảnh {{ product.name }}">{% endif %}
+        </div>
+        <div class="product-detail__thumbnails">
+            {% if product.image %}<button type="button" class="is-active" data-image="{{ product.image.url }}"><img src="{{ product.image.url }}" alt="Ảnh chính {{ product.name }}"></button>{% endif %}
+            {% for item in product.images.all %}{% if item.image.name != product.image.name %}<button type="button" data-image="{{ item.image.url }}"><img src="{{ item.image.url }}" alt="{{ item.alt_text|default:product.name }}"></button>{% endif %}{% endfor %}
+        </div>
+        <p class="zoom-hint">Di chuột lên ảnh để phóng to.</p>
     </div>
 
     <div class="product-detail__content">
         <p class="eyebrow">{{ product.brand.name|default:'QUANGHUY' }} / {{ product.category.name }}</p>
         <h1>{{ product.name }}</h1>
-        {% if product.discount_percent %}
-        <p class="product-detail__price"><strong>{{ product.sale_price|vnd }}</strong> <del>{{ product.price|vnd }}</del></p>
-        {% else %}
-        <p class="product-detail__price"><strong>{{ product.price|vnd }}</strong></p>
-        {% endif %}
+        <p class="product-detail__price" id="variant-price"><strong>{{ product.price|vnd }}</strong></p>
         <p>{{ product.description }}</p>
-        <div class="product-detail__note">
-            <strong>Sản phẩm mẫu U01</strong>
-            <p>Size, màu sắc và chức năng thêm giỏ sẽ được hoàn thiện ở các module U04 và U07.</p>
-        </div>
-        <a class="detail-button" href="{% url 'information_page' 'huong-dan-size' %}">XEM HƯỚNG DẪN SIZE</a>
+
+        <form method="post" action="{% url 'add_to_cart' product.slug %}" id="variant-form">
+            {% csrf_token %}
+            <label class="fallback-variant" for="variant-select">Biến thể
+                <select name="variant_id" id="variant-select" required>
+                    <option value="">Chọn size và màu</option>
+                    {% for variant in product.variants.all %}{% if variant.is_active %}<option value="{{ variant.id }}">{{ variant.size }} / {{ variant.color }} / {{ variant.sku }}</option>{% endif %}{% endfor %}
+                </select>
+            </label>
+            <fieldset class="variant-group"><legend>Chọn size</legend><div class="variant-options" id="size-options"></div></fieldset>
+            <fieldset class="variant-group"><legend>Chọn màu</legend><div class="variant-options" id="color-options"></div></fieldset>
+            <dl class="variant-status">
+                <div><dt>SKU</dt><dd id="variant-sku">—</dd></div>
+                <div><dt>Tình trạng</dt><dd id="variant-stock">Vui lòng chọn biến thể</dd></div>
+            </dl>
+            <label class="quantity-field" for="quantity">Số lượng<input id="quantity" name="quantity" type="number" min="1" value="1" disabled></label>
+            <div class="product-actions">
+                <button type="submit" name="action" value="add" id="add-cart-button" disabled>THÊM VÀO GIỎ</button>
+                <button type="submit" name="action" value="buy_now" id="buy-now-button" disabled>MUA NGAY</button>
+            </div>
+        </form>
+        <p class="policy-link"><a href="{% url 'information_page' 'chinh-sach' %}">Chính sách đổi size trong 7 ngày →</a></p>
     </div>
 </section>
 
-{% if related_products %}
-<section class="related-products">
-    <h2>SẢN PHẨM LIÊN QUAN</h2>
-    <div class="related-grid">{% for product in related_products %}{% include 'Product/includes/product_card.html' %}{% endfor %}</div>
+<section class="size-guide" id="size-guide">
+    <div><p class="eyebrow">CHỌN ĐÚNG KÍCH CỠ</p><h2>HƯỚNG DẪN SIZE GIÀY</h2></div>
+    <div class="size-table-wrap"><table>
+        <thead><tr><th>EU</th><th>US</th><th>UK</th><th>Chiều dài chân</th></tr></thead>
+        <tbody>
+            <tr><td>39</td><td>6.5</td><td>6</td><td>24,5 cm</td></tr><tr><td>40</td><td>7</td><td>6.5</td><td>25 cm</td></tr>
+            <tr><td>41</td><td>8</td><td>7</td><td>26 cm</td></tr><tr><td>42</td><td>8.5</td><td>8</td><td>26,5 cm</td></tr>
+            <tr><td>43</td><td>9.5</td><td>9</td><td>27,5 cm</td></tr>
+        </tbody>
+    </table></div>
 </section>
-{% endif %}
+
+{% if related_products %}<section class="related-products"><h2>SẢN PHẨM LIÊN QUAN</h2><div class="related-grid">{% for product in related_products %}{% include 'Product/includes/product_card.html' %}{% endfor %}</div></section>{% endif %}
 {% endblock %}
+
+{% block extra_js %}<script src="{% static 'Product/js/detail.js' %}"></script>{% endblock %}

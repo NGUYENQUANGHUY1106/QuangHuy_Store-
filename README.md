@@ -1,6 +1,6 @@
 # QuangHuy Store
 
-Website bán giày và quần áo bóng đá bằng Django + PostgreSQL. U01 đã hoàn thành trang chủ, U02 đã hoàn thành danh mục và bộ lọc, U03 đã hoàn thành tìm kiếm sản phẩm và gợi ý tức thời.
+Website bán giày và quần áo bóng đá bằng Django + PostgreSQL. U01–U04 đã hoàn thành trang chủ, danh mục/bộ lọc, tìm kiếm và chi tiết sản phẩm theo biến thể.
 
 ## 1. Cài đặt
 
@@ -69,6 +69,8 @@ Mở `http://127.0.0.1:8000/`.
 | `/category/<slug>/?brand=nike&size=42&color=Đen&in_stock=1` | Kết hợp bộ lọc U02 |
 | `/category/<slug>/?sort=price_asc&page=2` | Sắp xếp và phân trang U02 |
 | `/product/<slug>/` | Chi tiết sản phẩm |
+| `/product/<slug>/variants/` | API size, màu, SKU, giá và tồn kho U04 |
+| `/product/<slug>/add-to-cart/` | POST biến thể và số lượng đã được kiểm tra |
 | `/login/` | Đăng nhập |
 | `/register/` | Đăng ký |
 | `/admin/` | Trang quản trị Django |
@@ -111,7 +113,19 @@ Danh mục mới có `is_active=True` sẽ tự xuất hiện trên menu, không
 - Nội dung gợi ý được tạo bằng `textContent`, còn Django template tự escape từ khóa để tránh chèn HTML.
 - Lịch sử 5 từ khóa gần nhất được lưu phía trình duyệt bằng `localStorage`.
 
-## 8. Quản trị dữ liệu
+## 8. Cách U04 hoạt động
+
+- Trang chi tiết có ảnh lớn, thumbnail, hiệu ứng zoom, mô tả, giá và sản phẩm liên quan.
+- API biến thể trả ID, SKU, size, màu, giá gốc, giá khuyến mãi, tồn kho và ảnh.
+- Khi đổi size/màu, JavaScript cập nhật đúng SKU, giá, ảnh, tồn kho và giới hạn số lượng.
+- Biến thể hết hàng tự vô hiệu hóa nút thêm giỏ và mua ngay.
+- Server luôn đọc giá và tồn kho từ PostgreSQL; không nhận giá do client gửi lên.
+- Size/màu là bắt buộc; số lượng phải từ 1 đến tồn kho còn lại.
+- CTA thêm giỏ lưu biến thể và số lượng vào session, đồng thời cập nhật badge header. U07 sẽ mở rộng phần này thành trang giỏ hàng hoàn chỉnh.
+- CTA mua ngay lưu biến thể đã kiểm tra để U08 sử dụng khi xây checkout.
+- Có bảng quy đổi size giày EU/US/UK và link chính sách đổi size.
+
+## 9. Quản trị dữ liệu
 
 Tạo tài khoản admin:
 
@@ -121,7 +135,7 @@ python manage.py createsuperuser
 
 Vào `/admin/` để thêm/sửa danh mục, thương hiệu, sản phẩm, biến thể, ảnh phụ và banner. Khi thêm sản phẩm mới, cần tạo ít nhất một biến thể đang hoạt động để sản phẩm xuất hiện trong trang danh mục U02.
 
-## 9. Kiểm tra dự án
+## 10. Kiểm tra dự án
 
 ```powershell
 python manage.py check
@@ -129,15 +143,15 @@ python manage.py makemigrations --check --dry-run
 python manage.py test
 ```
 
-29 test hiện kiểm tra U01–U03: phân trang, bộ lọc, tìm kiếm tiếng Việt/SKU, API gợi ý, giới hạn từ khóa và request, ký tự đặc biệt, trạng thái rỗng, danh mục cha–con và luồng trang chủ → chi tiết sản phẩm.
+35 test hiện kiểm tra U01–U04: phân trang, bộ lọc, tìm kiếm, API gợi ý, API biến thể, giá khác giá mặc định, biến thể ẩn/hết hàng, giới hạn tồn kho, thêm giỏ, mua ngay và URL sai.
 
-## 10. Lỗi thường gặp
+## 11. Lỗi thường gặp
 
 - Không kết nối PostgreSQL: kiểm tra service PostgreSQL, database, mật khẩu và port `5432`.
 - Báo thiếu `DB_PASSWORD`: kiểm tra file `.env` có nằm cạnh `manage.py` và không có dấu `\` ở cuối dòng.
 - CSS chưa cập nhật: nhấn `Ctrl + F5` và kiểm tra đang sửa đúng CSS của trang.
 - Ảnh không hiện: chạy lại `python manage.py seed_products --refresh-images`; giao diện có ảnh mặc định nếu file ảnh lỗi.
 
-## 11. Quy ước phát triển tiếp
+## 12. Quy ước phát triển tiếp
 
 Mỗi nhóm chức năng lớn tạo một Django app riêng, ví dụ sản phẩm thuộc app `Product`, tài khoản thuộc app `Login`. Mỗi file HTML dùng một file CSS riêng và các trang con phải `{% extends 'base.html' %}`, chỉ thay nội dung trong `{% block content %}`.
