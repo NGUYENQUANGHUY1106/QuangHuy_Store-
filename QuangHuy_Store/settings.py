@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'Login',
     'Product',
+    'Cart',
 ]
 
 DATABASES = {

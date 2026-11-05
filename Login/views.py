@@ -155,11 +155,18 @@ def login_page(request):
                 {'error': 'Email hoặc mật khẩu không chính xác.', 'email': email, 'next': next_url},
             )
 
+        guest_session_key = request.session.session_key
+        legacy_cart = request.session.get('cart', {})
         request.session.cycle_key()
         request.session['user_id'] = user.id
         request.session['username'] = user.username
         request.session['email'] = user.email
         request.session.pop('login_attempts', None)
+        request.session.pop('cart', None)
+        request.session.pop('cart_count', None)
+
+        from Cart.services import merge_guest_cart
+        merge_guest_cart(user, guest_session_key, legacy_cart)
 
         if remember:
             request.session.set_expiry(30 * 24 * 60 * 60)

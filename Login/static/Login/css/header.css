@@ -174,6 +174,15 @@
     font-size: 10px;
 }
 
+.mini-cart { position: relative; }
+.mini-cart__panel { position: absolute; z-index: 30; top: 35px; right: -35px; display: none; width: 280px; padding: 20px; border: 1px solid var(--line); background: var(--ivory-50); box-shadow: 0 12px 30px rgba(32,33,31,.14); white-space: normal; }
+.mini-cart:hover .mini-cart__panel, .mini-cart:focus-within .mini-cart__panel { display: block; }
+.mini-cart__panel > strong { display: block; margin-bottom: 12px; font-size: 12px; }
+.mini-cart__panel > a:not(.mini-cart__button) { display: block; padding: 10px 0; border-top: 1px solid var(--line); font-size: 11px; }
+.mini-cart__panel small { display: block; margin-top: 4px; color: var(--stone-400); }
+.mini-cart__panel p { color: var(--stone-400); font-size: 11px; }
+.mini-cart__button { display: block; margin-top: 12px; padding: 12px; background: var(--charcoal-900); color: white; font-size: 11px; font-weight: 700; text-align: center; }
+
 .main-nav a:hover,
 .utility-nav a:hover {
     opacity: 0.55;
@@ -272,4 +281,6 @@
     .header-search:focus-within input {
         display: block;
     }
+
+    .mini-cart__panel { right: auto; left: 0; }
 }

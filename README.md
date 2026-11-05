@@ -1,6 +1,6 @@
 # QuangHuy Store
 
-Website bán giày và quần áo bóng đá bằng Django + PostgreSQL. U01–U06 đã hoàn thành trang chủ, danh mục/bộ lọc, tìm kiếm, chi tiết sản phẩm, xác thực tài khoản, hồ sơ và sổ địa chỉ.
+Website bán giày và quần áo bóng đá bằng Django + PostgreSQL. U01–U07 đã hoàn thành trang chủ, danh mục, tìm kiếm, chi tiết sản phẩm, tài khoản, sổ địa chỉ và giỏ hàng.
 
 ## 1. Cài đặt
 
@@ -71,6 +71,12 @@ Mở `http://127.0.0.1:8000/`.
 | `/product/<slug>/` | Chi tiết sản phẩm |
 | `/product/<slug>/variants/` | API size, màu, SKU, giá và tồn kho U04 |
 | `/product/<slug>/add-to-cart/` | POST biến thể và số lượng đã được kiểm tra |
+| `/cart/` | Trang giỏ hàng của khách hoặc người đã đăng nhập |
+| `/cart/items/add/` | POST thêm đúng biến thể vào giỏ |
+| `/cart/items/<id>/update/` | POST cập nhật số lượng |
+| `/cart/items/<id>/select/` | POST chọn sản phẩm để thanh toán |
+| `/cart/items/<id>/delete/` | POST xóa một sản phẩm khỏi giỏ |
+| `/cart/clear/` | POST xóa toàn bộ giỏ |
 | `/login/` | Đăng nhập |
 | `/register/` | Đăng ký |
 | `/logout/` | POST đăng xuất, vẫn giữ giỏ hàng trong session |
@@ -155,7 +161,18 @@ Danh mục mới có `is_active=True` sẽ tự xuất hiện trên menu, không
 - Địa chỉ đã đánh dấu dùng trong đơn không thể bị xóa. U08 sẽ đánh dấu trường này khi tạo đơn hàng.
 - Tab lịch sử đơn hàng và yêu thích đã có trên giao diện; dữ liệu đơn sẽ được nối ở U08.
 
-## 11. Quản trị dữ liệu
+## 11. Cách U07 hoạt động
+
+- App `Cart` tách riêng, gồm `Cart` cho tài khoản hoặc guest session và `CartItem` tham chiếu đúng `ProductVariant` (SKU/size/màu).
+- Thêm cùng SKU sẽ cộng số lượng; hai size khác nhau là hai dòng. Constraint ngăn một SKU bị lặp trong cùng giỏ.
+- Server tự đọc giá và tồn kho từ database, không nhận giá do trình duyệt gửi. Số lượng luôn phải từ 1 đến tồn kho.
+- Trang `/cart/` hiển thị ảnh, tên, SKU, size/màu, đơn giá hiện tại, số lượng, thành tiền và tổng tiền của các dòng đã chọn.
+- Có cập nhật số lượng, chọn item thanh toán, xóa một dòng, xóa tất cả, trạng thái giỏ trống và cảnh báo đổi giá/hết hàng.
+- Header có mini-cart và badge lấy trực tiếp từ database. JavaScript khóa nút sau khi submit để tránh bấm hai lần.
+- Khi guest đăng nhập, giỏ guest được merge theo SKU vào giỏ tài khoản và giới hạn theo tồn kho.
+- Mọi thao tác sửa/xóa đều lọc theo giỏ hiện tại nên không thể sửa `CartItem` của người khác.
+
+## 12. Quản trị dữ liệu
 
 Tạo tài khoản admin:
 
@@ -165,7 +182,7 @@ python manage.py createsuperuser
 
 Vào `/admin/` để thêm/sửa danh mục, thương hiệu, sản phẩm, biến thể, ảnh phụ và banner. Khi thêm sản phẩm mới, cần tạo ít nhất một biến thể đang hoạt động để sản phẩm xuất hiện trong trang danh mục U02.
 
-## 12. Kiểm tra dự án
+## 13. Kiểm tra dự án
 
 ```powershell
 python manage.py check
@@ -173,15 +190,15 @@ python manage.py makemigrations --check --dry-run
 python manage.py test
 ```
 
-Toàn bộ test hiện kiểm tra U01–U06: các luồng sản phẩm U01–U04, xác thực U05, sửa hồ sơ, avatar tùy chọn, CRUD địa chỉ, chọn mặc định, IDOR, điện thoại không hợp lệ, đổi mật khẩu và bảo vệ địa chỉ đã dùng trong đơn.
+Toàn bộ test hiện kiểm tra U01–U07, gồm cùng SKU, hai size, vượt tồn, sửa giá request, chọn item, xóa, giỏ rỗng, IDOR và merge giỏ guest sau đăng nhập.
 
-## 13. Lỗi thường gặp
+## 14. Lỗi thường gặp
 
 - Không kết nối PostgreSQL: kiểm tra service PostgreSQL, database, mật khẩu và port `5432`.
 - Báo thiếu `DB_PASSWORD`: kiểm tra file `.env` có nằm cạnh `manage.py` và không có dấu `\` ở cuối dòng.
 - CSS chưa cập nhật: nhấn `Ctrl + F5` và kiểm tra đang sửa đúng CSS của trang.
 - Ảnh không hiện: chạy lại `python manage.py seed_products --refresh-images`; giao diện có ảnh mặc định nếu file ảnh lỗi.
 
-## 14. Quy ước phát triển tiếp
+## 15. Quy ước phát triển tiếp
 
 Mỗi nhóm chức năng lớn tạo một Django app riêng, ví dụ sản phẩm thuộc app `Product`, tài khoản thuộc app `Login`. Mỗi file HTML dùng một file CSS riêng và các trang con phải `{% extends 'base.html' %}`, chỉ thay nội dung trong `{% block content %}`.

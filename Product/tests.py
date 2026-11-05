@@ -4,6 +4,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from Cart.models import CartItem
 from .models import Banner, Brand, Category, Product, ProductVariant
 
 
@@ -427,9 +428,8 @@ class ProductVariantDetailTests(TestCase):
             follow=True,
         )
 
-        session = self.client.session
-        self.assertEqual(session['cart'][str(self.available.id)], 2)
-        self.assertEqual(session['cart_count'], 2)
+        item = CartItem.objects.get(variant=self.available)
+        self.assertEqual(item.quantity, 2)
         self.assertContains(response, 'Đã thêm sản phẩm vào giỏ hàng')
 
     def test_out_of_stock_and_excess_quantity_are_rejected(self):

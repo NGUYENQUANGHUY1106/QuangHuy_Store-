@@ -369,6 +369,8 @@ def product_variants(request, product_slug):
 
 @require_POST
 def add_to_cart(request, product_slug):
+    from Cart.services import add_variant
+
     product = get_object_or_404(active_products(), slug=product_slug)
     try:
         variant_id = int(request.POST.get('variant_id', ''))
@@ -385,21 +387,16 @@ def add_to_cart(request, product_slug):
         messages.error(request, 'Số lượng phải lớn hơn 0.')
         return redirect('product_detail', product_slug=product.slug)
 
-    cart = request.session.get('cart', {})
-    current_quantity = int(cart.get(str(variant.id), 0))
-    if variant.stock <= 0 or current_quantity + quantity > variant.stock:
-        messages.error(request, f'Sản phẩm chỉ còn {variant.stock} trong kho.')
+    success, message = add_variant(request, variant, quantity)
+    if not success:
+        messages.error(request, message)
         return redirect('product_detail', product_slug=product.slug)
-
-    cart[str(variant.id)] = current_quantity + quantity
-    request.session['cart'] = cart
-    request.session['cart_count'] = sum(int(item_quantity) for item_quantity in cart.values())
 
     if request.POST.get('action') == 'buy_now':
         request.session['buy_now_variant_id'] = variant.id
         messages.success(request, 'Đã xác nhận sản phẩm. Bước thanh toán sẽ được hoàn thiện ở U08.')
     else:
-        messages.success(request, 'Đã thêm sản phẩm vào giỏ hàng.')
+        messages.success(request, message)
     return redirect('product_detail', product_slug=product.slug)
 
 

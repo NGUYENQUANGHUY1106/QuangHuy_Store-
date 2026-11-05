@@ -28,7 +28,8 @@
             <div class="search-suggestions" id="search-suggestions" hidden></div>
         </form>
 
-        <a class="utility-link cart-link" href="{% url 'home' %}#products" aria-label="Giỏ hàng">
+        <div class="mini-cart">
+        <a class="utility-link cart-link" href="{% url 'cart_page' %}" aria-label="Giỏ hàng">
             <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
                 <path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 1.9-1.4L21 8H6"></path>
                 <circle cx="9.5" cy="20" r="1"></circle>
@@ -36,6 +37,13 @@
             </svg>
             <span class="cart-badge" aria-label="{{ cart_count }} sản phẩm trong giỏ">{{ cart_count }}</span>
         </a>
+        <div class="mini-cart__panel">
+            <strong>GIỎ HÀNG ({{ cart_count }})</strong>
+            {% for item in mini_cart_items %}<a href="{% url 'cart_page' %}"><span>{{ item.variant.product.name }}<small>{{ item.variant.size }} / {{ item.variant.color }} × {{ item.quantity }}</small></span></a>
+            {% empty %}<p>Giỏ hàng đang trống.</p>{% endfor %}
+            <a class="mini-cart__button" href="{% url 'cart_page' %}">XEM GIỎ HÀNG</a>
+        </div>
+        </div>
 
         <a class="utility-link" href="{% if request.session.user_id %}{% url 'account' %}{% else %}{% url 'login' %}{% endif %}" aria-label="Tài khoản">
             <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
