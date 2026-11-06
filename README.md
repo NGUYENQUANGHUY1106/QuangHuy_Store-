@@ -440,3 +440,12 @@ Trang `/management/inventory/procurement/` quản lý nhà cung cấp, phiếu m
 python manage.py migrate
 python manage.py test Inventory
 ```
+
+## 34. A08 - Xử lý đơn hàng và xuất kho
+
+Vai trò `ORDER` xử lý tại `/management/orders/` theo state machine: pending → confirmed → packing → shipped → delivered → completed. Đóng gói trừ tồn kho đúng một lần; hủy trước bàn giao hoàn kho đúng một lần. Không cho nhảy trạng thái, mọi bước có history, audit và thông báo khách hàng.
+
+```powershell
+python manage.py migrate
+python manage.py test AdminPanel Inventory
+```

@@ -8,7 +8,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
 
-from Checkout.models import Order
+from Checkout.models import Order,OrderItem
+from Inventory.models import Stock,Warehouse
 from Login.models import User as Customer
 from Payment.models import Payment
 from Product.models import Brand, Category, Product, ProductVariant, SportType
@@ -456,4 +457,29 @@ class AdminProductTests(TestCase):
         self.assertContains(response, 'Giá khuyến mãi')
         self.assertContains(response, 'Thời gian kết thúc')
         self.assertFalse(ProductVariant.objects.filter(sku='SALE-BAD').exists())
+
+
+class AdminOrderOperationTests(TestCase):
+    def setUp(self):
+        User=get_user_model(); self.staff=User.objects.create_user(username='order_admin',password='StrongPass123',is_staff=True); StaffProfile.objects.create(user=self.staff,role='ORDER'); self.client.force_login(self.staff)
+        self.customer=Customer.objects.create(username='Buyer',email='buyer@ex.com',phone='0912345678',password='x')
+        category=Category.objects.create(name='Order Admin Cat',slug='order-admin-cat'); product=Product.objects.create(category=category,name='Order Admin Product',slug='order-admin-product',price=500000,image='products/test.jpg')
+        self.variant=ProductVariant.objects.create(product=product,sku='ORDER-40',size='40',color='Đen',price=500000,stock=10)
+        self.order=Order.objects.create(user=self.customer,order_code='ADMIN-ORDER',idempotency_key='admin-order-key',payment_method='cod',shipping_method='standard',subtotal=500000,shipping_fee=0,grand_total=500000)
+        OrderItem.objects.create(order=self.order,variant=self.variant,product_name=product.name,sku=self.variant.sku,size='40',color='Đen',unit_price=500000,quantity=2,line_total=1000000)
+        self.warehouse=Warehouse.objects.create(name='Kho đơn',code='ORDER-WH'); self.stock=Stock.objects.create(warehouse=self.warehouse,variant=self.variant,on_hand=5)
+
+    def action(self,name,**data): return self.client.post(reverse('admin_panel:order_action',args=[self.order.id,name]),data)
+
+    def test_confirm_pack_ship_flow_and_no_double_deduction(self):
+        self.action('confirm'); self.action('pack',warehouse_id=self.warehouse.id); self.action('pack',warehouse_id=self.warehouse.id)
+        self.stock.refresh_from_db(); self.order.refresh_from_db(); self.assertEqual(self.stock.on_hand,3); self.assertEqual(self.order.status,'packing')
+        self.action('ship'); self.order.refresh_from_db(); self.assertEqual(self.order.status,'shipped')
+
+    def test_cancel_packed_order_restores_once(self):
+        self.action('confirm'); self.action('pack',warehouse_id=self.warehouse.id); self.action('cancel',note='Khách đổi ý'); self.action('cancel',note='Lặp')
+        self.stock.refresh_from_db(); self.order.refresh_from_db(); self.assertEqual(self.stock.on_hand,5); self.assertEqual(self.order.status,'cancelled')
+
+    def test_invalid_state_jump_is_rejected(self):
+        self.action('ship'); self.order.refresh_from_db(); self.assertEqual(self.order.status,'pending')
 

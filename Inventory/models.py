@@ -99,3 +99,11 @@ class GoodsReceipt(models.Model):
 class GoodsReceiptItem(models.Model):
     receipt=models.ForeignKey(GoodsReceipt,on_delete=models.CASCADE,related_name='items'); purchase_item=models.ForeignKey(PurchaseOrderItem,on_delete=models.PROTECT); quantity=models.PositiveIntegerField()
     class Meta: db_table='goods_receipt_item'; constraints=[models.UniqueConstraint(fields=['receipt','purchase_item'],name='unique_receipt_purchase_item')]
+
+
+class OrderFulfillment(models.Model):
+    order=models.OneToOneField('Checkout.Order',on_delete=models.PROTECT,related_name='fulfillment')
+    assigned_to=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.SET_NULL,null=True,blank=True)
+    warehouse=models.ForeignKey(Warehouse,on_delete=models.PROTECT,null=True,blank=True)
+    packed_at=models.DateTimeField(null=True,blank=True); shipped_at=models.DateTimeField(null=True,blank=True); stock_restored=models.BooleanField(default=False)
+    class Meta: db_table='order_fulfillment'

@@ -9,7 +9,12 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
+from django.utils import timezone
 
+from Checkout.models import Order,OrderStatusHistory
+from Inventory.models import OrderFulfillment,Warehouse
+from Inventory.services import pack_order,restore_packed_order
+from Support.models import Notification
 from Product.models import Brand, Category, Product, ProductImage, ProductVariant, SportType
 
 from .forms import BrandForm, CategoryForm, ProductForm, ProductVariantForm, SportTypeForm
@@ -347,4 +352,46 @@ def variant_toggle(request, product_id, variant_id):
     variant.is_active = not variant.is_active; variant.save(update_fields=['is_active'])
     write_audit(request, 'variant.visibility', f'Đổi trạng thái {variant.sku}', 'variant', variant.id)
     return redirect('admin_panel:variants', product_id)
+
+
+@admin_permission_required('orders.view')
+def orders(request):
+    items=Order.objects.select_related('user').prefetch_related('items')
+    status=request.GET.get('status',''); keyword=request.GET.get('q','').strip()
+    if status in dict(Order.STATUS_CHOICES): items=items.filter(status=status)
+    if keyword: items=items.filter(Q(order_code__icontains=keyword)|Q(user__email__icontains=keyword))
+    return render(request,'AdminPanel/OrderList.html',page_context(request,orders=items,status_choices=Order.STATUS_CHOICES,selected_status=status,keyword=keyword))
+
+
+@admin_permission_required('orders.view')
+def order_detail_admin(request,order_id):
+    order=Order.objects.select_related('user','shipping_address').prefetch_related('items','status_history').filter(pk=order_id).first()
+    if not order: raise Http404
+    return render(request,'AdminPanel/OrderDetail.html',page_context(request,order=order,warehouses=Warehouse.objects.filter(is_active=True,is_online=True)))
+
+
+def set_order_status(request,order,new_status,note=''):
+    order.status=new_status; order.save(update_fields=['status']); OrderStatusHistory.objects.create(order=order,status=new_status,note=note)
+    Notification.objects.create(user=order.user,title=f'Đơn {order.order_code}',message=f'Trạng thái mới: {order.get_status_display()}',link=reverse('order_detail',args=[order.order_code]))
+    write_audit(request,f'order.{new_status}',note,'order',order.id)
+
+
+@admin_permission_required('orders.change')
+@require_POST
+def order_action(request,order_id,action):
+    order=Order.objects.filter(pk=order_id).first()
+    if not order: raise Http404
+    try:
+        if action=='confirm' and order.status=='pending': set_order_status(request,order,'confirmed',request.POST.get('note',''))
+        elif action=='pack' and order.status=='confirmed':
+            warehouse=Warehouse.objects.get(pk=request.POST.get('warehouse_id'),is_online=True,is_active=True); pack_order(order,warehouse,request.user); set_order_status(request,order,'packing')
+        elif action=='ship' and order.status=='packing':
+            fulfillment=OrderFulfillment.objects.get(order=order); fulfillment.shipped_at=timezone.now(); fulfillment.save(update_fields=['shipped_at']); set_order_status(request,order,'shipped')
+        elif action=='deliver' and order.status in ['shipped','shipping']: set_order_status(request,order,'delivered')
+        elif action=='complete' and order.status=='delivered': set_order_status(request,order,'completed')
+        elif action=='cancel' and order.status in ['pending','confirmed','packing']:
+            restore_packed_order(order,request.user); set_order_status(request,order,'cancelled',request.POST.get('note',''))
+        else: messages.error(request,'Chuyển trạng thái không hợp lệ.')
+    except (Warehouse.DoesNotExist,ValidationError) as error: messages.error(request,str(error))
+    return redirect('admin_panel:order_detail',order.id)
 

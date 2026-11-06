@@ -1,7 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 
-from .models import GoodsReceipt,GoodsReceiptItem,PurchaseOrder,PurchaseOrderItem,Stock,StockMovement
+from .models import GoodsReceipt,GoodsReceiptItem,OrderFulfillment,PurchaseOrder,PurchaseOrderItem,Stock,StockMovement
 
 
 @transaction.atomic
@@ -36,3 +36,26 @@ def receive_purchase_item(purchase_item_id, warehouse, quantity, receipt_code, a
     order.status='partially_received' if remaining else 'received'; order.save(update_fields=['status'])
     item.variant.stock=sum(s.available for s in Stock.objects.filter(variant=item.variant,warehouse__is_online=True,warehouse__is_active=True)); item.variant.save(update_fields=['stock'])
     return receipt, True
+
+
+@transaction.atomic
+def pack_order(order,warehouse,actor):
+    from django.utils import timezone
+    fulfillment,_=OrderFulfillment.objects.select_for_update().get_or_create(order=order,defaults={'warehouse':warehouse,'assigned_to':actor})
+    if fulfillment.packed_at: return fulfillment,False
+    for line in order.items.select_related('variant'):
+        stock=Stock.objects.select_for_update().filter(warehouse=warehouse,variant=line.variant).first()
+        if not stock or stock.available<line.quantity: raise ValidationError(f'Không đủ tồn cho SKU {line.sku}.')
+        before=stock.on_hand; stock.on_hand-=line.quantity; stock.save(update_fields=['on_hand','updated_at'])
+        StockMovement.objects.create(stock=stock,movement_type='sale',quantity=-line.quantity,before_quantity=before,after_quantity=stock.on_hand,reason=f'Đóng gói {order.order_code}',actor=actor,reference=order.order_code)
+    fulfillment.warehouse=warehouse; fulfillment.assigned_to=actor; fulfillment.packed_at=timezone.now(); fulfillment.save(); return fulfillment,True
+
+
+@transaction.atomic
+def restore_packed_order(order,actor):
+    fulfillment=OrderFulfillment.objects.select_for_update().filter(order=order,packed_at__isnull=False,shipped_at__isnull=True,stock_restored=False).first()
+    if not fulfillment: return False
+    for line in order.items.select_related('variant'):
+        stock=Stock.objects.select_for_update().get(warehouse=fulfillment.warehouse,variant=line.variant); before=stock.on_hand; stock.on_hand+=line.quantity; stock.save(update_fields=['on_hand','updated_at'])
+        StockMovement.objects.create(stock=stock,movement_type='return',quantity=line.quantity,before_quantity=before,after_quantity=stock.on_hand,reason=f'Hủy {order.order_code}',actor=actor,reference=order.order_code)
+    fulfillment.stock_restored=True; fulfillment.save(update_fields=['stock_restored']); return True

@@ -32,5 +32,8 @@ urlpatterns = [
     path('products/<int:product_id>/variants/add/', views.variant_form, name='variant_add'),
     path('products/<int:product_id>/variants/<int:variant_id>/edit/', views.variant_form, name='variant_edit'),
     path('products/<int:product_id>/variants/<int:variant_id>/toggle/', views.variant_toggle, name='variant_toggle'),
+    path('orders/',views.orders,name='orders'),
+    path('orders/<int:order_id>/',views.order_detail_admin,name='order_detail'),
+    path('orders/<int:order_id>/<str:action>/',views.order_action,name='order_action'),
 ]
 
