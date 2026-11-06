@@ -135,9 +135,13 @@ class Product(models.Model):
 class ProductVariant(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants')
     sku = models.CharField(max_length=80, unique=True)
+    barcode = models.CharField(max_length=80, unique=True, null=True, blank=True)
     size = models.CharField(max_length=20)
     color = models.CharField(max_length=50)
     price = models.DecimalField(max_digits=12, decimal_places=0)
+    sale_price = models.DecimalField(max_digits=12, decimal_places=0, null=True, blank=True)
+    sale_starts_at = models.DateTimeField(null=True, blank=True)
+    sale_ends_at = models.DateTimeField(null=True, blank=True)
     image = models.ImageField(upload_to='products/variants/', blank=True)
     stock = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)

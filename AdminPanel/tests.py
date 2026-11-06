@@ -426,3 +426,34 @@ class AdminProductTests(TestCase):
         self.assertContains(response, 'không quá 5 MB')
         self.assertEqual(product.images.count(), 0)
 
+    def test_create_variant_and_toggle(self):
+        product = self.create_product()
+        response = self.client.post(reverse('admin_panel:variant_add', args=[product.id]), {
+            'sku':'SKU-NEW-40','barcode':'89300001','size':'40','color':'Đen',
+            'price':950000,'stock':5,'is_active':'on',
+        })
+        self.assertRedirects(response, reverse('admin_panel:variants', args=[product.id]))
+        variant = product.variants.get(sku='SKU-NEW-40')
+        self.client.post(reverse('admin_panel:variant_toggle', args=[product.id, variant.id]))
+        variant.refresh_from_db()
+        self.assertFalse(variant.is_active)
+
+    def test_duplicate_sku_is_rejected(self):
+        product = self.create_product()
+        ProductVariant.objects.create(product=product, sku='DUP-SKU', size='40', color='Đen', price=900000)
+        response = self.client.post(reverse('admin_panel:variant_add', args=[product.id]), {
+            'sku':'DUP-SKU','size':'41','color':'Trắng','price':900000,'stock':1,'is_active':'on',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(ProductVariant.objects.filter(sku='DUP-SKU').count(), 1)
+
+    def test_sale_price_and_time_are_validated(self):
+        product = self.create_product()
+        response = self.client.post(reverse('admin_panel:variant_add', args=[product.id]), {
+            'sku':'SALE-BAD','size':'42','color':'Xanh','price':900000,'sale_price':1000000,
+            'sale_starts_at':'2026-12-02T10:00','sale_ends_at':'2026-12-01T10:00','stock':1,'is_active':'on',
+        })
+        self.assertContains(response, 'Giá khuyến mãi')
+        self.assertContains(response, 'Thời gian kết thúc')
+        self.assertFalse(ProductVariant.objects.filter(sku='SALE-BAD').exists())
+

@@ -1,6 +1,6 @@
 from django import forms
 
-from Product.models import Brand, Category, Product, SportType
+from Product.models import Brand, Category, Product, ProductVariant, SportType
 
 
 class CategoryForm(forms.ModelForm):
@@ -50,3 +50,20 @@ class ProductForm(forms.ModelForm):
         if value < 0:
             raise forms.ValidationError('Giá không được âm.')
         return value
+
+
+class ProductVariantForm(forms.ModelForm):
+    class Meta:
+        model = ProductVariant
+        fields = ['sku','barcode','size','color','price','sale_price','sale_starts_at','sale_ends_at','image','stock','is_active']
+        labels = {'sku':'Mã SKU','barcode':'Barcode','size':'Size','color':'Màu','price':'Giá bán','sale_price':'Giá khuyến mãi','sale_starts_at':'Bắt đầu giảm giá','sale_ends_at':'Kết thúc giảm giá','image':'Ảnh biến thể','stock':'Tồn hiện tại','is_active':'Đang bán'}
+        widgets = {'sale_starts_at': forms.DateTimeInput(attrs={'type':'datetime-local'}), 'sale_ends_at': forms.DateTimeInput(attrs={'type':'datetime-local'})}
+
+    def clean(self):
+        cleaned = super().clean()
+        price = cleaned.get('price'); sale = cleaned.get('sale_price')
+        if price is not None and price < 0: self.add_error('price', 'Giá không được âm.')
+        if sale is not None and (sale < 0 or (price is not None and sale > price)): self.add_error('sale_price', 'Giá khuyến mãi phải từ 0 đến giá bán.')
+        start = cleaned.get('sale_starts_at'); end = cleaned.get('sale_ends_at')
+        if start and end and start >= end: self.add_error('sale_ends_at', 'Thời gian kết thúc phải sau thời gian bắt đầu.')
+        return cleaned

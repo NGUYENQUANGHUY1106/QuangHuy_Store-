@@ -28,5 +28,9 @@ urlpatterns = [
     path('products/<int:product_id>/archive/', views.product_archive, name='product_archive'),
     path('products/<int:product_id>/images/add/', views.product_image_add, name='product_image_add'),
     path('product-images/<int:image_id>/delete/', views.product_image_delete, name='product_image_delete'),
+    path('products/<int:product_id>/variants/', views.variants, name='variants'),
+    path('products/<int:product_id>/variants/add/', views.variant_form, name='variant_add'),
+    path('products/<int:product_id>/variants/<int:variant_id>/edit/', views.variant_form, name='variant_edit'),
+    path('products/<int:product_id>/variants/<int:variant_id>/toggle/', views.variant_toggle, name='variant_toggle'),
 ]
 

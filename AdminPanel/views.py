@@ -10,9 +10,9 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
 
-from Product.models import Brand, Category, Product, ProductImage, SportType
+from Product.models import Brand, Category, Product, ProductImage, ProductVariant, SportType
 
-from .forms import BrandForm, CategoryForm, ProductForm, SportTypeForm
+from .forms import BrandForm, CategoryForm, ProductForm, ProductVariantForm, SportTypeForm
 from .permissions import admin_permission_required, get_staff_role, has_admin_permission, safe_next_url
 from .services import dashboard_data, menu_for_user, write_audit
 
@@ -312,4 +312,39 @@ def product_export(request):
         writer.writerow([item.name,item.slug,item.category.name,item.brand.name if item.brand else '',item.price,item.status])
     write_audit(request, 'product.exported', 'Xuất danh sách sản phẩm')
     return response
+
+
+@admin_permission_required('products.view')
+def variants(request, product_id):
+    product = Product.objects.filter(pk=product_id).first()
+    if not product: raise Http404
+    return render(request, 'AdminPanel/VariantList.html', page_context(request, product=product, variants=product.variants.all()))
+
+
+@admin_permission_required('products.change')
+@require_http_methods(['GET', 'POST'])
+def variant_form(request, product_id, variant_id=None):
+    product = Product.objects.filter(pk=product_id).first()
+    if not product: raise Http404
+    variant = ProductVariant.objects.filter(pk=variant_id, product=product).first() if variant_id else None
+    if variant_id and not variant: raise Http404
+    form = ProductVariantForm(request.POST or None, request.FILES or None, instance=variant)
+    if variant and variant.orderitem_set.exists():
+        form.fields['sku'].disabled = True
+    if request.method == 'POST' and form.is_valid():
+        item = form.save(commit=False); item.product = product; item.save()
+        action = 'updated' if variant else 'created'
+        write_audit(request, f'variant.{action}', f'{item.sku} - {product.name}', 'variant', item.id)
+        return redirect('admin_panel:variants', product.id)
+    return render(request, 'AdminPanel/VariantForm.html', page_context(request, form=form, product=product, variant=variant))
+
+
+@admin_permission_required('products.change')
+@require_POST
+def variant_toggle(request, product_id, variant_id):
+    variant = ProductVariant.objects.filter(pk=variant_id, product_id=product_id).first()
+    if not variant: raise Http404
+    variant.is_active = not variant.is_active; variant.save(update_fields=['is_active'])
+    write_audit(request, 'variant.visibility', f'Đổi trạng thái {variant.sku}', 'variant', variant.id)
+    return redirect('admin_panel:variants', product_id)
 

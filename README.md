@@ -413,3 +413,12 @@ Vai trò `PRODUCT` quản lý tại `/management/products/`. Sản phẩm mới 
 python manage.py migrate
 python manage.py test AdminPanel
 ```
+
+## 31. A05 - Quản lý SKU size và màu
+
+Từ trang sửa sản phẩm, chọn **Quản lý SKU** để thêm/sửa biến thể. Mỗi SKU có barcode, size, màu, giá, giá và lịch khuyến mãi, ảnh, tồn hiện tại và trạng thái bán. Hệ thống chặn SKU/barcode trùng, giá âm, giá sale cao hơn giá bán và khoảng thời gian sale sai; SKU đã có trong đơn hàng không được đổi mã.
+
+```powershell
+python manage.py migrate
+python manage.py test AdminPanel
+```
