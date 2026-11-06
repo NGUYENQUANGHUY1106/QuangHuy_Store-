@@ -367,3 +367,25 @@ Kiểm tra riêng A01:
 ```powershell
 python manage.py test AdminPanel
 ```
+
+## 28. A02 - Dashboard vận hành
+
+Mở `http://127.0.0.1:8000/management/` sau khi đăng nhập Admin. Dashboard dùng dữ liệu thật trong database và có bộ lọc `from/to` theo ngày, tối đa 366 ngày mỗi lần. Mốc đầu ngày/cuối ngày được tính theo múi giờ `Asia/Ho_Chi_Minh`.
+
+Quy ước số liệu:
+
+- Đơn trong kỳ được lọc theo `Order.created_at`; thẻ riêng hiển thị số đơn chờ, hoàn tất và đã hủy.
+- Doanh thu đã thu là tổng `Payment.amount` có trạng thái `paid`, có `paid_at` trong kỳ và đơn không ở trạng thái `cancelled`.
+- Chỉ superuser hoặc vai trò `FINANCE` thấy doanh thu; vai trò khác không nhận số liệu tài chính trong HTML.
+- Danh sách đơn gần đây chỉ hiện cho người có quyền đơn hàng.
+- Cảnh báo tồn thấp lấy SKU đang hoạt động, sản phẩm đang bán và `stock <= 5`; chỉ vai trò sản phẩm/kho hoặc superuser thấy.
+- Dashboard còn có biểu đồ số đơn theo ngày, tổng tài khoản khách hàng và menu phân hệ theo vai trò.
+
+Các câu lệnh kiểm tra A01–A02:
+
+```powershell
+python manage.py check
+python manage.py makemigrations --check --dry-run
+python manage.py test AdminPanel
+python manage.py test
+```

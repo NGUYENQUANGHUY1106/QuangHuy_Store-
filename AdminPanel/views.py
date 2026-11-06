@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
 
 from .permissions import admin_permission_required, get_staff_role, has_admin_permission, safe_next_url
-from .services import menu_for_user, write_audit
+from .services import dashboard_data, menu_for_user, write_audit
 
 
 def page_context(request, **extra):
@@ -69,7 +69,18 @@ def admin_logout(request):
 
 @admin_permission_required('dashboard.view')
 def dashboard(request):
-    return render(request, 'AdminPanel/Dashboard.html', page_context(request))
+    try:
+        data = dashboard_data(request.GET.get('from', ''), request.GET.get('to', ''))
+    except ValueError as error:
+        data = dashboard_data()
+        data['filter_error'] = str(error)
+    data['can_view_finance'] = has_admin_permission(request.user, 'finance.view')
+    data['can_view_orders'] = has_admin_permission(request.user, 'orders.view')
+    data['can_view_inventory'] = (
+        has_admin_permission(request.user, 'inventory.view')
+        or has_admin_permission(request.user, 'products.view')
+    )
+    return render(request, 'AdminPanel/Dashboard.html', page_context(request, **data))
 
 
 @admin_permission_required('dashboard.view')

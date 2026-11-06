@@ -8,16 +8,55 @@
     <h1>Xin chào, {{ request.user.first_name|default:request.user.username }}</h1>
     <span>Vai trò hiện tại: {{ staff_role|default:'SUPERUSER' }}</span>
 </header>
-<section class="module-grid" aria-label="Phân hệ được cấp quyền">
-    {% for item in admin_menu %}
-        <article>
-            <span>0{{ forloop.counter }}</span>
-            <h2>{{ item.label }}</h2>
-            {% if item.url_name %}<a href="{% url item.url_name %}">Mở phân hệ →</a>{% else %}<p>Phân hệ sẽ được nối ở bước tiếp theo.</p>{% endif %}
-        </article>
-    {% empty %}
-        <p>Tài khoản chưa được cấp phân hệ.</p>
-    {% endfor %}
+<form class="date-filter" method="get">
+    <div><label for="from">Từ ngày</label><input id="from" name="from" type="date" value="{{ from_date|date:'Y-m-d' }}"></div>
+    <div><label for="to">Đến ngày</label><input id="to" name="to" type="date" value="{{ to_date|date:'Y-m-d' }}"></div>
+    <button type="submit">Áp dụng</button>
+</form>
+{% if filter_error %}<p class="filter-error" role="alert">{{ filter_error }} Đã hiển thị 30 ngày gần nhất.</p>{% endif %}
+
+<section class="kpi-grid" aria-label="Chỉ số vận hành">
+    <a href="#recent-orders"><span>Đơn trong kỳ</span><strong>{{ orders_total }}</strong><small>{{ orders_pending }} đơn chờ xác nhận</small></a>
+    <a href="#recent-orders"><span>Đơn hoàn tất</span><strong>{{ orders_completed }}</strong><small>{{ orders_cancelled }} đơn đã hủy</small></a>
+    {% if can_view_finance %}<a href="#order-chart"><span>Doanh thu đã thu</span><strong>{{ revenue|floatformat:0 }}đ</strong><small>Không tính đơn hủy</small></a>{% endif %}
+    <a href="#modules"><span>Khách hàng</span><strong>{{ customers_total }}</strong><small>Tổng tài khoản khách</small></a>
+    {% if can_view_inventory %}<a href="#low-stock"><span>SKU tồn thấp</span><strong>{{ low_stock_count }}</strong><small>Tồn kho từ 5 trở xuống</small></a>{% endif %}
+</section>
+
+<section id="order-chart" class="chart-panel">
+    <div class="section-heading"><div><p>XU HƯỚNG</p><h2>Số đơn theo ngày</h2></div><span>{{ from_date|date:'d/m/Y' }} – {{ to_date|date:'d/m/Y' }}</span></div>
+    <div class="bar-chart" aria-label="Biểu đồ số đơn theo ngày">
+        {% for point in order_chart %}
+            <div class="bar-column" title="{{ point.day|date:'d/m' }}: {{ point.total }} đơn">
+                <span>{{ point.total }}</span><div class="bar" style="height:{{ point.percent }}%"></div><small>{{ point.day|date:'d/m' }}</small>
+            </div>
+        {% empty %}<p>Chưa có đơn hàng trong khoảng ngày này.</p>{% endfor %}
+    </div>
+</section>
+
+<div class="operation-grid">
+    {% if can_view_orders %}
+    <section id="recent-orders" class="data-panel">
+        <div class="section-heading"><div><p>ĐƠN HÀNG</p><h2>Đơn gần đây</h2></div></div>
+        <div class="table-wrap"><table><thead><tr><th>Mã đơn</th><th>Khách</th><th>Trạng thái</th><th>Tổng tiền</th></tr></thead><tbody>
+        {% for order in recent_orders %}<tr><td>{{ order.order_code }}</td><td>{{ order.user.username }}</td><td>{{ order.get_status_display }}</td><td>{{ order.grand_total|floatformat:0 }}đ</td></tr>
+        {% empty %}<tr><td colspan="4">Chưa có đơn hàng.</td></tr>{% endfor %}
+        </tbody></table></div>
+    </section>
+    {% endif %}
+    {% if can_view_inventory %}
+    <section id="low-stock" class="data-panel">
+        <div class="section-heading"><div><p>KHO HÀNG</p><h2>Cảnh báo tồn thấp</h2></div></div>
+        <div class="table-wrap"><table><thead><tr><th>SKU</th><th>Sản phẩm</th><th>Tồn</th></tr></thead><tbody>
+        {% for variant in low_stock_variants %}<tr><td>{{ variant.sku }}</td><td>{{ variant.product.name }} / {{ variant.size }} / {{ variant.color }}</td><td><strong>{{ variant.stock }}</strong></td></tr>
+        {% empty %}<tr><td colspan="3">Không có SKU tồn thấp.</td></tr>{% endfor %}
+        </tbody></table></div>
+    </section>
+    {% endif %}
+</div>
+
+<section id="modules" class="module-grid" aria-label="Phân hệ được cấp quyền">
+{% for item in admin_menu %}<article><span>0{{ forloop.counter }}</span><h2>{{ item.label }}</h2>{% if item.url_name %}<a href="{% url item.url_name %}">Mở phân hệ →</a>{% else %}<p>Phân hệ sẽ được nối ở bước tiếp theo.</p>{% endif %}</article>{% endfor %}
 </section>
 {% endblock %}
 

@@ -1,6 +1,15 @@
+from datetime import timedelta
+from decimal import Decimal
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
+
+from Checkout.models import Order
+from Login.models import User as Customer
+from Payment.models import Payment
+from Product.models import Brand, Category, Product, ProductVariant
 
 from .models import AuditLog, StaffProfile
 from .permissions import has_admin_permission
@@ -195,4 +204,112 @@ class AdminPasswordTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.user.refresh_from_db()
         self.assertTrue(self.user.check_password('OldPassword123'))
+
+
+class AdminDashboardTests(TestCase):
+    def setUp(self):
+        self.customer = Customer.objects.create(
+            username='Khách dashboard', email='dashboard@example.com',
+            phone='0912345678', password='hashed',
+        )
+        category = Category.objects.create(name='Dashboard category', slug='dashboard-category')
+        brand = Brand.objects.create(name='Dashboard brand', slug='dashboard-brand')
+        product = Product.objects.create(
+            category=category, brand=brand, name='Sản phẩm dashboard',
+            slug='san-pham-dashboard', price=Decimal('1000000'), image='products/dashboard.jpg',
+        )
+        self.low_variant = ProductVariant.objects.create(
+            product=product, sku='DASH-40', size='40', color='Đen',
+            price=Decimal('1000000'), stock=3,
+        )
+
+    def create_staff(self, username, role):
+        User = get_user_model()
+        user = User.objects.create_user(username=username, password='StrongPass123', is_staff=True)
+        StaffProfile.objects.create(user=user, role=role)
+        return user
+
+    def create_order(self, code, status='completed', amount=Decimal('1000000'), days_ago=0, paid=True):
+        order = Order.objects.create(
+            user=self.customer,
+            order_code=code,
+            idempotency_key=f'key-{code}',
+            status=status,
+            payment_method='cod',
+            shipping_method='standard',
+            subtotal=amount,
+            shipping_fee=0,
+            grand_total=amount,
+        )
+        created_at = timezone.now() - timedelta(days=days_ago)
+        Order.objects.filter(pk=order.pk).update(created_at=created_at)
+        payment = Payment.objects.create(
+            order=order,
+            status='paid' if paid else 'pending',
+            amount=amount,
+            paid_at=created_at if paid else None,
+        )
+        return order, payment
+
+    def test_finance_dashboard_shows_reconciled_revenue(self):
+        self.create_order('PAID-01', amount=Decimal('1200000'))
+        self.create_order('CANCEL-01', status='cancelled', amount=Decimal('900000'))
+        staff = self.create_staff('finance_dashboard', 'FINANCE')
+        self.client.force_login(staff)
+
+        response = self.client.get(reverse('admin_panel:dashboard'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['revenue'], Decimal('1200000'))
+        self.assertContains(response, 'Doanh thu đã thu')
+        self.assertEqual(response.context['orders_total'], 2)
+        self.assertEqual(response.context['orders_cancelled'], 1)
+
+    def test_non_finance_role_cannot_see_revenue(self):
+        self.create_order('PAID-02')
+        staff = self.create_staff('order_dashboard', 'ORDER')
+        self.client.force_login(staff)
+
+        response = self.client.get(reverse('admin_panel:dashboard'))
+
+        self.assertFalse(response.context['can_view_finance'])
+        self.assertNotContains(response, 'Doanh thu đã thu')
+        self.assertContains(response, 'PAID-02')
+
+    def test_product_role_sees_low_stock_but_not_order_table(self):
+        staff = self.create_staff('product_dashboard', 'PRODUCT')
+        self.client.force_login(staff)
+
+        response = self.client.get(reverse('admin_panel:dashboard'))
+
+        self.assertContains(response, 'DASH-40')
+        self.assertContains(response, 'SKU tồn thấp')
+        self.assertNotContains(response, 'Đơn gần đây')
+
+    def test_date_filter_only_counts_orders_in_selected_period(self):
+        self.create_order('TODAY-01')
+        self.create_order('OLD-01', days_ago=60)
+        staff = self.create_staff('order_filter', 'ORDER')
+        self.client.force_login(staff)
+        today = timezone.localdate()
+
+        response = self.client.get(reverse('admin_panel:dashboard'), {
+            'from': today.isoformat(),
+            'to': today.isoformat(),
+        })
+
+        self.assertEqual(response.context['orders_total'], 1)
+        self.assertContains(response, 'TODAY-01')
+        self.assertNotContains(response, 'OLD-01')
+
+    def test_invalid_date_filter_falls_back_to_last_thirty_days(self):
+        staff = self.create_staff('order_invalid_filter', 'ORDER')
+        self.client.force_login(staff)
+
+        response = self.client.get(reverse('admin_panel:dashboard'), {
+            'from': 'not-a-date', 'to': '2026-11-06',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Ngày lọc phải có định dạng')
 
