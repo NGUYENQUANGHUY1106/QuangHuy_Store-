@@ -20,6 +20,7 @@ from django.conf.urls.static import static
 from django.urls import include, path
 
 urlpatterns = [
+    path('management/', include('AdminPanel.urls')),
     path('', include('Product.urls')),
     path('', include('Login.urls')),
     path('', include('Cart.urls')),

@@ -1,0 +1,43 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>{% block title %}Quản trị QuangHuy Store{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'AdminPanel/css/base_admin.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <a class="skip-link" href="#admin-content">Bỏ qua menu</a>
+    <aside class="admin-sidebar">
+        <a class="admin-brand" href="{% url 'admin_panel:dashboard' %}">QH ADMIN</a>
+        <nav aria-label="Điều hướng quản trị">
+            {% for item in admin_menu %}
+                {% if item.url_name %}
+                    <a href="{% url item.url_name %}">{{ item.label }}</a>
+                {% else %}
+                    <span class="menu-upcoming">{{ item.label }} <small>Sắp làm</small></span>
+                {% endif %}
+            {% endfor %}
+        </nav>
+        <div class="sidebar-account">
+            <strong>{{ request.user.username }}</strong>
+            <span>{{ staff_role|default:'SUPERUSER' }}</span>
+            <a href="{% url 'admin_panel:change_password' %}">Đổi mật khẩu</a>
+            <form method="post" action="{% url 'admin_panel:logout' %}">
+                {% csrf_token %}
+                <button type="submit">Đăng xuất</button>
+            </form>
+        </div>
+    </aside>
+    <main id="admin-content" class="admin-main" tabindex="-1">
+        {% if messages %}
+            {% for message in messages %}<p class="admin-message {{ message.tags }}">{{ message }}</p>{% endfor %}
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>
+

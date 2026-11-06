@@ -1,0 +1,23 @@
+{% extends 'AdminPanel/base_admin.html' %}
+{% load static %}
+{% block title %}Tổng quan quản trị{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'AdminPanel/css/dashboard.css' %}">{% endblock %}
+{% block content %}
+<header class="page-heading">
+    <p>TRUNG TÂM VẬN HÀNH</p>
+    <h1>Xin chào, {{ request.user.first_name|default:request.user.username }}</h1>
+    <span>Vai trò hiện tại: {{ staff_role|default:'SUPERUSER' }}</span>
+</header>
+<section class="module-grid" aria-label="Phân hệ được cấp quyền">
+    {% for item in admin_menu %}
+        <article>
+            <span>0{{ forloop.counter }}</span>
+            <h2>{{ item.label }}</h2>
+            {% if item.url_name %}<a href="{% url item.url_name %}">Mở phân hệ →</a>{% else %}<p>Phân hệ sẽ được nối ở bước tiếp theo.</p>{% endif %}
+        </article>
+    {% empty %}
+        <p>Tài khoản chưa được cấp phân hệ.</p>
+    {% endfor %}
+</section>
+{% endblock %}
+

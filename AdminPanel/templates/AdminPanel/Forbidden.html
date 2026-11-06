@@ -1,0 +1,20 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Không có quyền truy cập</title>
+    <link rel="stylesheet" href="{% static 'AdminPanel/css/forbidden.css' %}">
+</head>
+<body>
+    <main class="forbidden-page">
+        <p>403</p>
+        <h1>Bạn không có quyền thực hiện thao tác này</h1>
+        <span>Hãy liên hệ quản trị viên nếu bạn cần được cấp thêm quyền.</span>
+        <a href="{% url 'admin_panel:dashboard' %}">Về trang tổng quan</a>
+    </main>
+</body>
+</html>
+

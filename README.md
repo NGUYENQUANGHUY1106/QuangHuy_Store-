@@ -327,3 +327,43 @@ Toàn bộ test hiện kiểm tra U01–U08, gồm giỏ hàng, checkout item đ
 ## 26. Quy ước phát triển tiếp
 
 Mỗi nhóm chức năng lớn tạo một Django app riêng, ví dụ sản phẩm thuộc app `Product`, tài khoản thuộc app `Login`. Mỗi file HTML dùng một file CSS riêng và các trang con phải `{% extends 'base.html' %}`, chỉ thay nội dung trong `{% block content %}`.
+
+## 27. A01 - Đăng nhập Admin, vai trò và phân quyền
+
+Phần quản trị custom nằm trong app riêng `AdminPanel` và dùng đường dẫn `/management/`. Đường dẫn `/admin/` vẫn là Django admin kỹ thuật để seed hoặc sửa dữ liệu khi phát triển.
+
+Chạy migration mới:
+
+```powershell
+python manage.py migrate
+```
+
+Tạo tài khoản quản trị toàn quyền:
+
+```powershell
+python manage.py createsuperuser
+```
+
+Tạo tài khoản nhân viên theo vai trò; lệnh sẽ hỏi mật khẩu hai lần và không ghi mật khẩu vào source code hoặc command history:
+
+```powershell
+python manage.py create_admin_staff --username product_staff --email product@example.com --role PRODUCT
+```
+
+Các vai trò hỗ trợ: `PRODUCT`, `WAREHOUSE`, `ORDER`, `SUPPORT`, `MARKETING`, `FINANCE`.
+
+Sau khi tạo tài khoản, mở `http://127.0.0.1:8000/management/login/`. Mỗi nhân viên chỉ thấy menu và gọi được endpoint thuộc vai trò của mình; superuser có toàn quyền. Tài khoản `is_staff=True` nhưng chưa có `StaffProfile` sẽ bị từ chối theo nguyên tắc mặc định không cấp quyền.
+
+A01 hiện có:
+
+- Trang đăng nhập Admin riêng, đăng xuất bằng POST, session tối đa 8 giờ và giới hạn 10 lần đăng nhập sai trong 5 phút.
+- Vai trò nghiệp vụ và permission matrix kiểm tra ở backend, không chỉ ẩn menu giao diện.
+- Trang tổng quan khung, trang 403, API `/management/me/` và form đổi mật khẩu giữ nguyên phiên đăng nhập.
+- `AuditLog` ghi đăng nhập, đăng xuất, đổi mật khẩu và lần đăng nhập thất bại; không ghi mật khẩu.
+- Giao diện dùng `AdminPanel/templates/AdminPanel/base_admin.html` và static riêng, không trộn với giao diện khách hàng.
+
+Kiểm tra riêng A01:
+
+```powershell
+python manage.py test AdminPanel
+```

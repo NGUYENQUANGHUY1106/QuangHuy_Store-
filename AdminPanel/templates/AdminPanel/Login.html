@@ -1,0 +1,32 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Đăng nhập Admin</title>
+    <link rel="stylesheet" href="{% static 'AdminPanel/css/login.css' %}">
+</head>
+<body>
+    <main class="login-page">
+        <section class="login-card">
+            <p class="eyebrow">QUANGHUY STORE</p>
+            <h1>Đăng nhập quản trị</h1>
+            <p>Chỉ tài khoản nhân viên được cấp vai trò mới có thể truy cập.</p>
+            {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ next }}">
+                <label for="username">Tên đăng nhập</label>
+                <input id="username" name="username" value="{{ username }}" required autofocus autocomplete="username">
+                <label for="password">Mật khẩu</label>
+                <input id="password" name="password" type="password" required autocomplete="current-password">
+                <button type="submit">Đăng nhập</button>
+            </form>
+            <a class="store-link" href="{% url 'home' %}">← Quay lại cửa hàng</a>
+        </section>
+    </main>
+</body>
+</html>
+
