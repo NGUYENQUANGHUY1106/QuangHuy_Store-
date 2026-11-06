@@ -9,7 +9,7 @@ from django.utils import timezone
 from Checkout.models import Order
 from Login.models import User as Customer
 from Payment.models import Payment
-from Product.models import Brand, Category, Product, ProductVariant
+from Product.models import Brand, Category, Product, ProductVariant, SportType
 
 from .models import AuditLog, StaffProfile
 from .permissions import has_admin_permission
@@ -312,4 +312,53 @@ class AdminDashboardTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Ngày lọc phải có định dạng')
+
+
+class AdminCatalogTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.staff = User.objects.create_user(username='catalog_staff', password='StrongPass123', is_staff=True)
+        StaffProfile.objects.create(user=self.staff, role='PRODUCT')
+        self.client.force_login(self.staff)
+
+    def test_create_category_writes_audit(self):
+        response = self.client.post(reverse('admin_panel:catalog_create', args=['category']), {
+            'name':'Áo bóng đá','slug':'ao-bong-da','order':1,'is_active':'on','is_featured':'on',
+        })
+        self.assertRedirects(response, reverse('admin_panel:categories'))
+        obj = Category.objects.get(slug='ao-bong-da')
+        self.assertTrue(AuditLog.objects.filter(action='catalog.category.created', target_id=str(obj.id)).exists())
+
+    def test_duplicate_slug_and_category_cycle_are_rejected(self):
+        parent = Category.objects.create(name='Cha', slug='cha')
+        child = Category.objects.create(name='Con', slug='con', parent=parent)
+        duplicate = self.client.post(reverse('admin_panel:catalog_create', args=['category']), {
+            'name':'Khác','slug':'cha','order':0,'is_active':'on','is_featured':'on',
+        })
+        cycle = self.client.post(reverse('admin_panel:catalog_edit', args=['category', parent.id]), {
+            'name':'Cha','slug':'cha','parent':child.id,'order':0,'is_active':'on','is_featured':'on',
+        })
+        self.assertContains(duplicate, 'Slug này đã tồn tại')
+        self.assertContains(cycle, 'danh mục con')
+
+    def test_toggle_hides_without_deleting_linked_product(self):
+        category = Category.objects.create(name='Có hàng', slug='co-hang')
+        product = Product.objects.create(category=category, name='Áo test', slug='ao-test-admin', price=500000, image='products/test.jpg')
+        self.client.post(reverse('admin_panel:catalog_toggle', args=['category', category.id]))
+        category.refresh_from_db()
+        self.assertFalse(category.is_active)
+        self.assertTrue(Product.objects.filter(id=product.id).exists())
+
+    def test_brand_and_sport_crud(self):
+        self.client.post(reverse('admin_panel:catalog_create', args=['brand']), {'name':'Puma Admin','slug':'puma-admin','order':1,'is_active':'on'})
+        self.client.post(reverse('admin_panel:catalog_create', args=['sport']), {'name':'Bóng đá','slug':'bong-da','order':1,'is_active':'on'})
+        self.assertTrue(Brand.objects.filter(slug='puma-admin').exists())
+        self.assertTrue(SportType.objects.filter(slug='bong-da').exists())
+
+    def test_other_role_is_forbidden(self):
+        User = get_user_model()
+        user = User.objects.create_user(username='order_only', password='StrongPass123', is_staff=True)
+        StaffProfile.objects.create(user=user, role='ORDER')
+        self.client.force_login(user)
+        self.assertEqual(self.client.get(reverse('admin_panel:categories')).status_code, 403)
 

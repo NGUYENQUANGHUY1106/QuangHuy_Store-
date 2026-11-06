@@ -1,0 +1,4 @@
+{% extends 'AdminPanel/base_admin.html' %}{% load static %}
+{% block title %}{{ page_title }} - Admin{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'AdminPanel/css/catalog-form.css' %}">{% endblock %}
+{% block content %}<section class="form-panel"><p>CATALOG</p><h1>{{ page_title }}</h1><form method="post" enctype="multipart/form-data">{% csrf_token %}{% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<small>{{ error }}</small>{% endfor %}</div>{% endfor %}<div class="form-actions"><button>Lưu dữ liệu</button><a href="{{ back_url }}">Hủy</a></div></form></section>{% endblock %}

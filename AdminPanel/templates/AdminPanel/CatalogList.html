@@ -1,0 +1,10 @@
+{% extends 'AdminPanel/base_admin.html' %}{% load static %}
+{% block title %}{{ page_title }} - Admin{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'AdminPanel/css/catalog-list.css' %}">{% endblock %}
+{% block content %}
+<header class="catalog-heading"><div><p>QUẢN LÝ CATALOG</p><h1>{{ page_title }}</h1></div>{% if can_add %}<a href="{% url 'admin_panel:catalog_create' kind %}">+ Thêm mới</a>{% endif %}</header>
+<nav class="catalog-tabs"><a href="{% url 'admin_panel:categories' %}">Danh mục</a><a href="{% url 'admin_panel:brands' %}">Thương hiệu</a><a href="{% url 'admin_panel:sports' %}">Môn thể thao</a></nav>
+<form class="catalog-search" method="get"><input name="q" value="{{ keyword }}" placeholder="Tìm theo tên..." aria-label="Tìm theo tên"><button>Tìm kiếm</button></form>
+<div class="table-wrap"><table><thead><tr><th>Tên</th><th>Slug</th>{% if kind == 'category' %}<th>Danh mục cha</th>{% endif %}<th>Thứ tự</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>
+{% for object in objects %}<tr><td><strong>{{ object.name }}</strong></td><td>{{ object.slug }}</td>{% if kind == 'category' %}<td>{{ object.parent.name|default:'—' }}</td>{% endif %}<td>{{ object.order }}</td><td>{% if object.is_active %}Đang hiện{% else %}Đang ẩn{% endif %}</td><td class="actions">{% if can_change %}<a href="{% url 'admin_panel:catalog_edit' kind object.id %}">Sửa</a><form method="post" action="{% url 'admin_panel:catalog_toggle' kind object.id %}">{% csrf_token %}<button>{% if object.is_active %}Ẩn{% else %}Hiện{% endif %}</button></form>{% endif %}</td></tr>{% empty %}<tr><td colspan="6">Chưa có dữ liệu.</td></tr>{% endfor %}
+</tbody></table></div>{% endblock %}

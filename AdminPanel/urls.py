@@ -13,5 +13,11 @@ urlpatterns = [
     path('change-password/', views.change_password, name='change_password'),
     path('permission-test/', views.permission_test, name='permission_test'),
     path('403/', views.forbidden, name='forbidden'),
+    path('catalog/categories/', views.categories, name='categories'),
+    path('catalog/brands/', views.brands, name='brands'),
+    path('catalog/sports/', views.sports, name='sports'),
+    path('catalog/<str:kind>/add/', views.catalog_create, name='catalog_create'),
+    path('catalog/<str:kind>/<int:object_id>/edit/', views.catalog_edit, name='catalog_edit'),
+    path('catalog/<str:kind>/<int:object_id>/toggle/', views.catalog_toggle, name='catalog_toggle'),
 ]
 

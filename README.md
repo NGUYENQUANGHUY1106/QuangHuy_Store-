@@ -389,3 +389,18 @@ python manage.py makemigrations --check --dry-run
 python manage.py test AdminPanel
 python manage.py test
 ```
+
+## 29. A03 - Danh mục, thương hiệu và môn thể thao
+
+Vai trò `PRODUCT` và superuser quản lý catalog tại:
+
+- `/management/catalog/categories/`
+- `/management/catalog/brands/`
+- `/management/catalog/sports/`
+
+Các trang hỗ trợ tìm kiếm, thêm, sửa và ẩn/hiện. Danh mục không bị xóa cứng khi đã có sản phẩm; form chặn slug/tên trùng và chặn cây danh mục vòng lặp. Mỗi thay đổi đều ghi `AuditLog`.
+
+```powershell
+python manage.py migrate
+python manage.py test AdminPanel
+```

@@ -1,12 +1,15 @@
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
 
+from Product.models import Brand, Category, SportType
+
+from .forms import BrandForm, CategoryForm, SportTypeForm
 from .permissions import admin_permission_required, get_staff_role, has_admin_permission, safe_next_url
 from .services import dashboard_data, menu_for_user, write_audit
 
@@ -114,4 +117,82 @@ def permission_test(request):
 
 def forbidden(request):
     return render(request, 'AdminPanel/Forbidden.html', status=403)
+
+
+CATALOGS = {
+    'category': (Category, CategoryForm, 'Danh mục', 'admin_panel:categories'),
+    'brand': (Brand, BrandForm, 'Thương hiệu', 'admin_panel:brands'),
+    'sport': (SportType, SportTypeForm, 'Môn thể thao', 'admin_panel:sports'),
+}
+
+
+def get_catalog(kind):
+    if kind not in CATALOGS:
+        raise Http404
+    return CATALOGS[kind]
+
+
+def catalog_list(request, kind):
+    model, form_class, title, list_url = get_catalog(kind)
+    keyword = request.GET.get('q', '').strip()
+    objects = model.objects.all()
+    if keyword:
+        objects = objects.filter(name__icontains=keyword)
+    return render(request, 'AdminPanel/CatalogList.html', page_context(
+        request, objects=objects, kind=kind, page_title=title, keyword=keyword,
+        can_add=has_admin_permission(request.user, 'categories.add'),
+        can_change=has_admin_permission(request.user, 'categories.change'),
+    ))
+
+
+@admin_permission_required('categories.view')
+def categories(request): return catalog_list(request, 'category')
+
+
+@admin_permission_required('categories.view')
+def brands(request): return catalog_list(request, 'brand')
+
+
+@admin_permission_required('categories.view')
+def sports(request): return catalog_list(request, 'sport')
+
+
+@admin_permission_required('categories.add')
+@require_http_methods(['GET', 'POST'])
+def catalog_create(request, kind):
+    model, form_class, title, list_url = get_catalog(kind)
+    form = form_class(request.POST or None, request.FILES or None)
+    if request.method == 'POST' and form.is_valid():
+        obj = form.save()
+        write_audit(request, f'catalog.{kind}.created', f'Tạo {title}: {obj.name}', kind, obj.id)
+        messages.success(request, f'Đã tạo {title.lower()}.')
+        return redirect(list_url)
+    return render(request, 'AdminPanel/CatalogForm.html', page_context(request, form=form, page_title=f'Thêm {title.lower()}', back_url=reverse(list_url)))
+
+
+@admin_permission_required('categories.change')
+@require_http_methods(['GET', 'POST'])
+def catalog_edit(request, kind, object_id):
+    model, form_class, title, list_url = get_catalog(kind)
+    obj = model.objects.filter(pk=object_id).first()
+    if not obj: raise Http404
+    form = form_class(request.POST or None, request.FILES or None, instance=obj)
+    if request.method == 'POST' and form.is_valid():
+        obj = form.save()
+        write_audit(request, f'catalog.{kind}.updated', f'Sửa {title}: {obj.name}', kind, obj.id)
+        messages.success(request, f'Đã cập nhật {title.lower()}.')
+        return redirect(list_url)
+    return render(request, 'AdminPanel/CatalogForm.html', page_context(request, form=form, page_title=f'Sửa {title.lower()}', back_url=reverse(list_url)))
+
+
+@admin_permission_required('categories.change')
+@require_POST
+def catalog_toggle(request, kind, object_id):
+    model, form_class, title, list_url = get_catalog(kind)
+    obj = model.objects.filter(pk=object_id).first()
+    if not obj: raise Http404
+    obj.is_active = not obj.is_active
+    obj.save(update_fields=['is_active'])
+    write_audit(request, f'catalog.{kind}.visibility', f'Đổi trạng thái {obj.name}', kind, obj.id)
+    return redirect(list_url)
 

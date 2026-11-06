@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Banner, Brand, Category, Product, ProductImage, ProductVariant
+from .models import Banner, Brand, Category, Product, ProductImage, ProductVariant, SportType
 
 
 @admin.register(Category)
@@ -14,6 +14,9 @@ class CategoryAdmin(admin.ModelAdmin):
 class BrandAdmin(admin.ModelAdmin):
     list_display = ['name', 'is_active']
     prepopulated_fields = {'slug': ('name',)}
+
+
+admin.site.register(SportType)
 
 
 class ProductImageInline(admin.TabularInline):
