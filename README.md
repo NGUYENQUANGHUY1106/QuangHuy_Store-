@@ -449,3 +449,12 @@ Vai trò `ORDER` xử lý tại `/management/orders/` theo state machine: pendin
 python manage.py migrate
 python manage.py test AdminPanel Inventory
 ```
+
+## 35. A09 - Vận chuyển và giao hàng
+
+Trang `/management/shipping/` quản lý phương thức, vùng phí và vận đơn. Chỉ tạo vận đơn sau đóng gói; tracking là duy nhất. Event ID chống replay và trạng thái theo luồng chuẩn, hỗ trợ giao thất bại, giao lại, hoàn hàng, phí thực tế và COD đối soát; User nhận timeline cập nhật.
+
+```powershell
+python manage.py migrate
+python manage.py test Shipping
+```

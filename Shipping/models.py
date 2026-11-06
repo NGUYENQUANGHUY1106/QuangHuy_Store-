@@ -21,13 +21,15 @@ class ShippingZone(models.Model):
         constraints = [models.UniqueConstraint(fields=['method', 'province'], name='unique_shipping_method_province')]
 
 class Shipment(models.Model):
-    STATUS_CHOICES = [('preparing','Đang chuẩn bị'),('picked','Đã lấy hàng'),('shipping','Đang giao'),('delivered','Đã giao'),('failed','Giao thất bại')]
+    STATUS_CHOICES = [('preparing','Đang chuẩn bị'),('picked','Đã lấy hàng'),('shipping','Đang giao'),('delivered','Đã giao'),('failed','Giao thất bại'),('returned','Đã hoàn hàng')]
     order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='shipment')
     carrier = models.CharField(max_length=100)
     tracking_code = models.CharField(max_length=100, unique=True)
     tracking_url = models.URLField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='preparing')
     estimated_delivery = models.DateField(null=True, blank=True)
+    actual_fee = models.DecimalField(max_digits=12, decimal_places=0, null=True, blank=True)
+    cod_collected = models.DecimalField(max_digits=14, decimal_places=0, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta: db_table = 'shipment'
 

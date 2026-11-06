@@ -1,11 +1,13 @@
 from datetime import date
 from decimal import Decimal
 from django.contrib.auth.hashers import make_password
+from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 from Checkout.models import Order
+from AdminPanel.models import StaffProfile
 from Login.models import Address,User
 from .models import Shipment,ShipmentEvent,ShippingMethod,ShippingZone
 from .services import shipping_options_for
@@ -33,3 +35,25 @@ class ShippingTests(TestCase):
         other=User.objects.create(username='Other Ship',email='other-ship@example.com',phone='0987654321',password=make_password('secret123'))
         session=self.client.session;session['user_id']=other.id;session.save()
         self.assertEqual(self.client.get(reverse('shipment_status',args=[order.order_code])).status_code,404)
+
+
+class AdminShippingTests(TestCase):
+    def setUp(self):
+        UserAuth=get_user_model();self.staff=UserAuth.objects.create_user(username='ship_staff',password='StrongPass123',is_staff=True);StaffProfile.objects.create(user=self.staff,role='ORDER');self.client.force_login(self.staff)
+        self.user=User.objects.create(username='Ship Buyer',email='ship-buyer@example.com',phone='0912345678',password='x')
+        self.order=Order.objects.create(user=self.user,order_code='ADMINSHIP',idempotency_key='admin-ship',status='packing',payment_method='cod',shipping_method='standard',subtotal=100,shipping_fee=0,grand_total=100)
+        self.shipment=Shipment.objects.create(order=self.order,carrier='GHN',tracking_code='ADMIN-TRACK')
+
+    def event(self,event_id,status): return self.client.post(reverse('shipping_admin:add_event',args=[self.shipment.id]),{'event_id':event_id,'status':status,'description':status})
+
+    def test_valid_events_update_shipment_and_order(self):
+        self.event('E1','picked');self.event('E2','shipping');self.shipment.refresh_from_db();self.order.refresh_from_db()
+        self.assertEqual(self.shipment.status,'shipping');self.assertEqual(self.order.status,'shipping')
+
+    def test_event_replay_and_invalid_transition_do_not_duplicate(self):
+        self.event('E1','picked');self.event('E1','shipping');self.event('BAD','delivered')
+        self.shipment.refresh_from_db();self.assertEqual(self.shipment.status,'picked');self.assertEqual(ShipmentEvent.objects.count(),1)
+
+    def test_failed_can_retry_or_return(self):
+        self.event('E1','picked');self.event('E2','shipping');self.event('E3','failed');self.event('E4','returned')
+        self.shipment.refresh_from_db();self.assertEqual(self.shipment.status,'returned')
