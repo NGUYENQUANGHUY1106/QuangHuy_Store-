@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'Returns',
     'Support',
     'AdminPanel',
+    'Inventory',
 ]
 
 DATABASES = {

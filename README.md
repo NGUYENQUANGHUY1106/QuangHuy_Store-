@@ -422,3 +422,12 @@ Từ trang sửa sản phẩm, chọn **Quản lý SKU** để thêm/sửa biế
 python manage.py migrate
 python manage.py test AdminPanel
 ```
+
+## 32. A06 - Kho hàng, điều chỉnh và kiểm kê
+
+App riêng `Inventory` quản lý nhiều kho và tồn theo từng SKU tại `/management/inventory/`. `available = on_hand - reserved`; database chặn reserved vượt tồn. Điều chỉnh và hoàn tất kiểm kê dùng transaction/row lock, tạo `StockMovement`, đồng thời cập nhật tổng tồn online về `ProductVariant.stock`.
+
+```powershell
+python manage.py migrate
+python manage.py test Inventory AdminPanel
+```

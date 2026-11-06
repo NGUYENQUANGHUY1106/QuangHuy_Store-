@@ -1,0 +1,1 @@
+{% extends 'AdminPanel/base_admin.html' %}{% load static %}{% block extra_css %}<link rel="stylesheet" href="{% static 'Inventory/css/form.css' %}">{% endblock %}{% block content %}<section><h1>{{ title }}</h1><form method="post">{% csrf_token %}{{ form.as_p }}<button>Lưu</button></form></section>{% endblock %}
