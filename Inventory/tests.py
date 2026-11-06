@@ -6,8 +6,8 @@ from django.urls import reverse
 
 from AdminPanel.models import StaffProfile
 from Product.models import Category,Product,ProductVariant
-from .models import Stock,StockCount,StockCountItem,StockMovement,Warehouse
-from .services import adjust_stock
+from .models import GoodsReceipt,PurchaseOrder,PurchaseOrderItem,Stock,StockCount,StockCountItem,StockMovement,Supplier,Warehouse
+from .services import adjust_stock,receive_purchase_item
 
 
 class InventoryTests(TestCase):
@@ -41,3 +41,18 @@ class InventoryTests(TestCase):
 
     def test_unique_stock_per_warehouse_and_variant(self):
         with self.assertRaises(IntegrityError): Stock.objects.create(warehouse=self.warehouse,variant=self.variant,on_hand=1)
+
+    def test_partial_receipt_is_idempotent_and_updates_stock(self):
+        supplier=Supplier.objects.create(name='Nike',code='NIKE'); order=PurchaseOrder.objects.create(supplier=supplier,code='PO-01',status='approved',created_by=self.staff)
+        item=PurchaseOrderItem.objects.create(purchase_order=order,variant=self.variant,quantity=5,unit_cost=300000)
+        receipt,created=receive_purchase_item(item.id,self.warehouse,2,'GR-01',self.staff)
+        repeated,created_again=receive_purchase_item(item.id,self.warehouse,2,'GR-01',self.staff)
+        item.refresh_from_db(); order.refresh_from_db(); self.stock.refresh_from_db()
+        self.assertTrue(created); self.assertFalse(created_again); self.assertEqual(receipt.id,repeated.id)
+        self.assertEqual(item.received_quantity,2); self.assertEqual(order.status,'partially_received'); self.assertEqual(self.stock.on_hand,12)
+
+    def test_receive_more_than_remaining_is_rejected(self):
+        supplier=Supplier.objects.create(name='Puma',code='PUMA'); order=PurchaseOrder.objects.create(supplier=supplier,code='PO-02',status='approved',created_by=self.staff)
+        item=PurchaseOrderItem.objects.create(purchase_order=order,variant=self.variant,quantity=2,unit_cost=300000)
+        with self.assertRaises(ValidationError): receive_purchase_item(item.id,self.warehouse,3,'GR-02',self.staff)
+        self.assertFalse(GoodsReceipt.objects.exists())

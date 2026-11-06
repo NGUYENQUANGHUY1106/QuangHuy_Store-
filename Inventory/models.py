@@ -66,3 +66,36 @@ class StockCountItem(models.Model):
         constraints = [models.UniqueConstraint(fields=['stock_count','stock'], name='unique_stock_count_item')]
     @property
     def difference(self): return self.counted_quantity - self.system_quantity
+
+
+class Supplier(models.Model):
+    name=models.CharField(max_length=200); code=models.CharField(max_length=30,unique=True)
+    phone=models.CharField(max_length=20,blank=True); email=models.EmailField(blank=True); address=models.CharField(max_length=255,blank=True); is_active=models.BooleanField(default=True)
+    class Meta: db_table='supplier'
+    def __str__(self): return f'{self.code} - {self.name}'
+
+
+class PurchaseOrder(models.Model):
+    STATUS_CHOICES=[('draft','Bản nháp'),('approved','Đã duyệt'),('partially_received','Nhận một phần'),('received','Đã nhận đủ'),('cancelled','Đã hủy')]
+    supplier=models.ForeignKey(Supplier,on_delete=models.PROTECT,related_name='purchase_orders'); code=models.CharField(max_length=30,unique=True)
+    status=models.CharField(max_length=30,choices=STATUS_CHOICES,default='draft'); created_by=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT); created_at=models.DateTimeField(auto_now_add=True); note=models.CharField(max_length=255,blank=True)
+    class Meta: db_table='purchase_order'; ordering=['-created_at']
+
+
+class PurchaseOrderItem(models.Model):
+    purchase_order=models.ForeignKey(PurchaseOrder,on_delete=models.CASCADE,related_name='items'); variant=models.ForeignKey(ProductVariant,on_delete=models.PROTECT)
+    quantity=models.PositiveIntegerField(); received_quantity=models.PositiveIntegerField(default=0); unit_cost=models.DecimalField(max_digits=14,decimal_places=0)
+    class Meta: db_table='purchase_order_item'; constraints=[models.UniqueConstraint(fields=['purchase_order','variant'],name='unique_po_variant')]
+    @property
+    def remaining(self): return self.quantity-self.received_quantity
+
+
+class GoodsReceipt(models.Model):
+    purchase_order=models.ForeignKey(PurchaseOrder,on_delete=models.PROTECT,related_name='receipts'); warehouse=models.ForeignKey(Warehouse,on_delete=models.PROTECT)
+    receipt_code=models.CharField(max_length=50,unique=True); received_by=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT); created_at=models.DateTimeField(auto_now_add=True)
+    class Meta: db_table='goods_receipt'; ordering=['-created_at']
+
+
+class GoodsReceiptItem(models.Model):
+    receipt=models.ForeignKey(GoodsReceipt,on_delete=models.CASCADE,related_name='items'); purchase_item=models.ForeignKey(PurchaseOrderItem,on_delete=models.PROTECT); quantity=models.PositiveIntegerField()
+    class Meta: db_table='goods_receipt_item'; constraints=[models.UniqueConstraint(fields=['receipt','purchase_item'],name='unique_receipt_purchase_item')]

@@ -431,3 +431,12 @@ App riêng `Inventory` quản lý nhiều kho và tồn theo từng SKU tại `/
 python manage.py migrate
 python manage.py test Inventory AdminPanel
 ```
+
+## 33. A07 - Nhà cung cấp và nhập kho
+
+Trang `/management/inventory/procurement/` quản lý nhà cung cấp, phiếu mua và nhận từng SKU. Phiếu đi từ draft → approved → partially_received → received. Mỗi mã phiếu nhận chỉ xử lý một lần; nhận hàng tăng tồn, cập nhật số đã nhận và ghi `StockMovement` trong transaction.
+
+```powershell
+python manage.py migrate
+python manage.py test Inventory
+```

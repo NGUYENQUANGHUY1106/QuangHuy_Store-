@@ -1,5 +1,5 @@
 from django import forms
-from .models import Stock, StockCount, Warehouse
+from .models import PurchaseOrder,PurchaseOrderItem,Stock,StockCount,Supplier,Warehouse
 
 
 class WarehouseForm(forms.ModelForm):
@@ -20,3 +20,15 @@ class StockForm(forms.ModelForm):
 class StockCountForm(forms.ModelForm):
     class Meta:
         model=StockCount; fields=['warehouse','note']
+
+
+class SupplierForm(forms.ModelForm):
+    class Meta: model=Supplier; fields=['name','code','phone','email','address','is_active']
+
+
+class PurchaseOrderForm(forms.ModelForm):
+    class Meta: model=PurchaseOrder; fields=['supplier','code','note']
+
+
+class PurchaseOrderItemForm(forms.ModelForm):
+    class Meta: model=PurchaseOrderItem; fields=['variant','quantity','unit_cost']

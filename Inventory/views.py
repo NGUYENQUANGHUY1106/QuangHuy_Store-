@@ -8,9 +8,9 @@ from django.views.decorators.http import require_http_methods, require_POST
 
 from AdminPanel.permissions import admin_permission_required
 from AdminPanel.services import menu_for_user, write_audit
-from .forms import StockCountForm, StockForm, WarehouseForm
-from .models import Stock, StockCount, StockCountItem, StockMovement, Warehouse
-from .services import adjust_stock
+from .forms import PurchaseOrderForm,PurchaseOrderItemForm,StockCountForm,StockForm,SupplierForm,WarehouseForm
+from .models import PurchaseOrder,PurchaseOrderItem,Stock,StockCount,StockCountItem,StockMovement,Supplier,Warehouse
+from .services import adjust_stock,receive_purchase_item
 
 
 def context(request, **extra):
@@ -81,3 +81,57 @@ def count_complete(request, count_id):
     count.status='completed'; count.completed_at=timezone.now(); count.save(update_fields=['status','completed_at'])
     write_audit(request,'stock_count.completed',f'Kiểm kê #{count.id}','stock_count',count.id)
     return redirect('inventory:stock_list')
+
+
+@admin_permission_required('suppliers.view')
+def procurement(request):
+    return render(request,'Inventory/Procurement.html',context(request,suppliers=Supplier.objects.all(),orders=PurchaseOrder.objects.prefetch_related('items__variant').select_related('supplier'),warehouses=Warehouse.objects.filter(is_active=True)))
+
+
+@admin_permission_required('suppliers.change')
+@require_http_methods(['GET','POST'])
+def supplier_create(request):
+    form=SupplierForm(request.POST or None)
+    if request.method=='POST' and form.is_valid():
+        obj=form.save(); write_audit(request,'supplier.created',obj.code,'supplier',obj.id); return redirect('inventory:procurement')
+    return render(request,'Inventory/Form.html',context(request,form=form,title='Thêm nhà cung cấp'))
+
+
+@admin_permission_required('suppliers.change')
+@require_http_methods(['GET','POST'])
+def po_create(request):
+    form=PurchaseOrderForm(request.POST or None)
+    if request.method=='POST' and form.is_valid():
+        obj=form.save(commit=False); obj.created_by=request.user; obj.save(); return redirect('inventory:po_item_add',obj.id)
+    return render(request,'Inventory/Form.html',context(request,form=form,title='Tạo phiếu mua'))
+
+
+@admin_permission_required('suppliers.change')
+@require_http_methods(['GET','POST'])
+def po_item_add(request, po_id):
+    order=PurchaseOrder.objects.filter(pk=po_id,status='draft').first()
+    if not order: raise Http404
+    form=PurchaseOrderItemForm(request.POST or None)
+    if request.method=='POST' and form.is_valid():
+        item=form.save(commit=False); item.purchase_order=order; item.save(); return redirect('inventory:procurement')
+    return render(request,'Inventory/Form.html',context(request,form=form,title=f'Thêm SKU vào {order.code}'))
+
+
+@admin_permission_required('suppliers.change')
+@require_POST
+def po_approve(request, po_id):
+    order=PurchaseOrder.objects.filter(pk=po_id,status='draft').first()
+    if not order or not order.items.exists(): raise Http404
+    order.status='approved'; order.save(update_fields=['status']); write_audit(request,'purchase_order.approved',order.code,'purchase_order',order.id)
+    return redirect('inventory:procurement')
+
+
+@admin_permission_required('suppliers.change')
+@require_POST
+def receive_item(request, item_id):
+    try:
+        warehouse=Warehouse.objects.get(pk=request.POST.get('warehouse_id'))
+        receipt,created=receive_purchase_item(item_id,warehouse,int(request.POST.get('quantity','0')),request.POST.get('receipt_code','').strip(),request.user)
+        messages.success(request,'Đã nhập kho.' if created else 'Mã phiếu này đã được xử lý trước đó.')
+    except (ValueError,ValidationError,Warehouse.DoesNotExist) as error: messages.error(request,str(error))
+    return redirect('inventory:procurement')

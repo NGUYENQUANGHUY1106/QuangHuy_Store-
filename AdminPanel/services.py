@@ -20,6 +20,7 @@ ADMIN_MENU = [
     {'label': 'Danh mục', 'permission': 'categories.view', 'url_name': 'admin_panel:categories'},
     {'label': 'Sản phẩm', 'permission': 'products.view', 'url_name': 'admin_panel:products'},
     {'label': 'Kho hàng', 'permission': 'inventory.view', 'url_name': 'inventory:stock_list'},
+    {'label': 'Nhập hàng', 'permission': 'suppliers.view', 'url_name': 'inventory:procurement'},
     {'label': 'Đơn hàng', 'permission': 'orders.view', 'url_name': ''},
     {'label': 'Hỗ trợ', 'permission': 'support.view', 'url_name': ''},
     {'label': 'Marketing', 'permission': 'marketing.view', 'url_name': ''},
