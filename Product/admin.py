@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Banner, Brand, Category, Product, ProductImage, ProductVariant, SportType
+from .models import Banner, Brand, Category, Product, ProductImage, ProductSpecification, ProductVariant, SportType
 
 
 @admin.register(Category)
@@ -29,13 +29,18 @@ class ProductVariantInline(admin.TabularInline):
     extra = 1
 
 
+class ProductSpecificationInline(admin.TabularInline):
+    model = ProductSpecification
+    extra = 1
+
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     list_display = ['name', 'brand', 'category', 'gender', 'price', 'is_new', 'is_best_seller', 'is_active']
     list_filter = ['brand', 'category', 'gender', 'is_new', 'is_best_seller', 'is_active']
     search_fields = ['name', 'variants__sku']
     prepopulated_fields = {'slug': ('name',)}
-    inlines = [ProductImageInline, ProductVariantInline]
+    inlines = [ProductImageInline, ProductVariantInline, ProductSpecificationInline]
 
 
 @admin.register(Banner)

@@ -1,6 +1,6 @@
 from django import forms
 
-from Product.models import Brand, Category, SportType
+from Product.models import Brand, Category, Product, SportType
 
 
 class CategoryForm(forms.ModelForm):
@@ -36,3 +36,17 @@ class SportTypeForm(forms.ModelForm):
         fields = ['name', 'slug', 'description', 'order', 'is_active']
         labels = {'name':'Tên môn thể thao','description':'Mô tả','order':'Thứ tự','is_active':'Đang hiển thị'}
         error_messages = {'slug': {'unique': 'Slug này đã tồn tại.'}, 'name': {'unique': 'Tên môn thể thao đã tồn tại.'}}
+
+
+class ProductForm(forms.ModelForm):
+    class Meta:
+        model = Product
+        fields = ['name','slug','category','brand','sport_type','price','image','description','material','size_guide','gender','is_new','is_best_seller','discount_percent','seo_title','meta_description']
+        labels = {'name':'Tên sản phẩm','category':'Danh mục','brand':'Thương hiệu','sport_type':'Môn thể thao','price':'Giá','image':'Ảnh chính','description':'Mô tả','material':'Chất liệu','size_guide':'Hướng dẫn size','gender':'Giới tính','is_new':'Hàng mới','is_best_seller':'Bán chạy','discount_percent':'Giảm giá (%)','seo_title':'Tiêu đề SEO','meta_description':'Mô tả SEO'}
+        error_messages = {'slug': {'unique':'Slug này đã tồn tại.'}}
+
+    def clean_price(self):
+        value = self.cleaned_data['price']
+        if value < 0:
+            raise forms.ValidationError('Giá không được âm.')
+        return value

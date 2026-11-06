@@ -404,3 +404,12 @@ Các trang hỗ trợ tìm kiếm, thêm, sửa và ẩn/hiện. Danh mục khô
 python manage.py migrate
 python manage.py test AdminPanel
 ```
+
+## 30. A04 - Quản lý sản phẩm và hình ảnh
+
+Vai trò `PRODUCT` quản lý tại `/management/products/`. Sản phẩm mới luôn ở trạng thái nháp; chỉ được công bố khi có ít nhất một SKU hoạt động. Trang hỗ trợ tìm kiếm theo tên/SKU, lọc trạng thái, sửa thông tin/SEO/hướng dẫn size, công bố, ẩn, ẩn hàng loạt, ảnh phụ tối đa 5 MB và xuất CSV. Sản phẩm được ẩn mềm để giữ lịch sử đơn hàng.
+
+```powershell
+python manage.py migrate
+python manage.py test AdminPanel
+```

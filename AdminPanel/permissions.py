@@ -7,7 +7,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 
 ROLE_PERMISSIONS = {
     'PRODUCT': {
-        'dashboard.view', 'products.view', 'products.add', 'products.change',
+        'dashboard.view', 'products.view', 'products.add', 'products.change', 'products.export',
         'categories.view', 'categories.add', 'categories.change',
     },
     'WAREHOUSE': {

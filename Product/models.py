@@ -78,6 +78,7 @@ class SportType(models.Model):
 
 
 class Product(models.Model):
+    STATUS_CHOICES = [('draft', 'Bản nháp'), ('published', 'Đã công bố'), ('archived', 'Đã ẩn')]
     GENDER_CHOICES = [
         ('unisex', 'Unisex'),
         ('men', 'Nam'),
@@ -92,12 +93,14 @@ class Product(models.Model):
         null=True,
         blank=True,
     )
+    sport_type = models.ForeignKey(SportType, on_delete=models.SET_NULL, null=True, blank=True, related_name='products')
     name = models.CharField(max_length=200)
     slug = models.SlugField(max_length=220, unique=True, blank=True)
     price = models.DecimalField(max_digits=12, decimal_places=0)
     image = models.ImageField(upload_to='products/')
     description = models.CharField(max_length=255, blank=True)
     material = models.CharField(max_length=100, blank=True, default='Chất liệu thể thao')
+    size_guide = models.TextField(blank=True)
     seo_title = models.CharField(max_length=200, blank=True)
     meta_description = models.CharField(max_length=160, blank=True)
     source_url = models.URLField(max_length=500, blank=True)
@@ -107,6 +110,7 @@ class Product(models.Model):
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='unisex')
     popularity = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='published')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -168,6 +172,16 @@ class ProductImage(models.Model):
 
     def __str__(self):
         return f'Ảnh {self.product.name}'
+
+
+class ProductSpecification(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='specifications')
+    name = models.CharField(max_length=100)
+    value = models.CharField(max_length=255)
+
+    class Meta:
+        db_table = 'product_specification'
+        ordering = ['id']
 
 
 class Banner(models.Model):

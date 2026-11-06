@@ -1,8 +1,10 @@
 from datetime import timedelta
 from decimal import Decimal
+import base64
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
 
@@ -361,4 +363,66 @@ class AdminCatalogTests(TestCase):
         StaffProfile.objects.create(user=user, role='ORDER')
         self.client.force_login(user)
         self.assertEqual(self.client.get(reverse('admin_panel:categories')).status_code, 403)
+
+
+class AdminProductTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.staff = User.objects.create_user(username='product_admin', password='StrongPass123', is_staff=True)
+        StaffProfile.objects.create(user=self.staff, role='PRODUCT')
+        self.client.force_login(self.staff)
+        self.category = Category.objects.create(name='Sản phẩm Admin', slug='san-pham-admin')
+
+    def image(self, name='image.png'):
+        content = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=')
+        return SimpleUploadedFile(name, content, content_type='image/png')
+
+    def create_product(self, slug='admin-product'):
+        return Product.objects.create(category=self.category, name='Admin Product', slug=slug, price=900000, image='products/test.jpg', status='draft', is_active=False)
+
+    def test_create_product_starts_as_draft(self):
+        response = self.client.post(reverse('admin_panel:product_create'), {
+            'name':'Giày Admin','slug':'giay-admin','category':self.category.id,'price':1200000,
+            'image':self.image(),'gender':'unisex','discount_percent':0,'material':'Da',
+        })
+        product = Product.objects.get(slug='giay-admin')
+        self.assertRedirects(response, reverse('admin_panel:product_edit', args=[product.id]))
+        self.assertEqual(product.status, 'draft')
+        self.assertFalse(product.is_active)
+
+    def test_publish_requires_active_variant(self):
+        product = self.create_product()
+        response = self.client.post(reverse('admin_panel:product_publish', args=[product.id]), follow=True)
+        product.refresh_from_db()
+        self.assertEqual(product.status, 'draft')
+        self.assertContains(response, 'ít nhất một SKU')
+
+    def test_publish_and_archive_product(self):
+        product = self.create_product()
+        ProductVariant.objects.create(product=product, sku='ADMIN-40', size='40', color='Đen', price=900000, stock=2)
+        self.client.post(reverse('admin_panel:product_publish', args=[product.id]))
+        product.refresh_from_db()
+        self.assertTrue(product.is_active)
+        self.assertEqual(product.status, 'published')
+        self.client.post(reverse('admin_panel:product_archive', args=[product.id]))
+        product.refresh_from_db()
+        self.assertFalse(product.is_active)
+        self.assertEqual(product.status, 'archived')
+
+    def test_bulk_hide_and_csv_export(self):
+        first = self.create_product('first-product')
+        second = self.create_product('second-product')
+        self.client.post(reverse('admin_panel:product_bulk_hide'), {'product_ids':[first.id, second.id]})
+        self.assertEqual(Product.objects.filter(id__in=[first.id,second.id], status='archived').count(), 2)
+        response = self.client.get(reverse('admin_panel:product_export'))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('text/csv', response['Content-Type'])
+        self.assertContains(response, 'Admin Product')
+
+    def test_fake_gallery_file_is_rejected(self):
+        product = self.create_product()
+        fake = SimpleUploadedFile('fake.jpg', b'not-image', content_type='text/plain')
+        response = self.client.post(reverse('admin_panel:product_image_add', args=[product.id]), {'image':fake}, follow=True)
+        self.assertContains(response, 'không quá 5 MB')
+        self.assertEqual(product.images.count(), 0)
 

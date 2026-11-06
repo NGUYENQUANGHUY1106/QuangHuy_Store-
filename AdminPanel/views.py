@@ -1,15 +1,18 @@
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
-from django.http import Http404, JsonResponse
+import csv
+
+from django.db.models import Q
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
 
-from Product.models import Brand, Category, SportType
+from Product.models import Brand, Category, Product, ProductImage, SportType
 
-from .forms import BrandForm, CategoryForm, SportTypeForm
+from .forms import BrandForm, CategoryForm, ProductForm, SportTypeForm
 from .permissions import admin_permission_required, get_staff_role, has_admin_permission, safe_next_url
 from .services import dashboard_data, menu_for_user, write_audit
 
@@ -195,4 +198,118 @@ def catalog_toggle(request, kind, object_id):
     obj.save(update_fields=['is_active'])
     write_audit(request, f'catalog.{kind}.visibility', f'Đổi trạng thái {obj.name}', kind, obj.id)
     return redirect(list_url)
+
+
+@admin_permission_required('products.view')
+def products(request):
+    items = Product.objects.select_related('category', 'brand')
+    keyword = request.GET.get('q', '').strip()
+    status = request.GET.get('status', '')
+    if keyword:
+        items = items.filter(Q(name__icontains=keyword) | Q(variants__sku__icontains=keyword)).distinct()
+    if status in dict(Product.STATUS_CHOICES):
+        items = items.filter(status=status)
+    return render(request, 'AdminPanel/ProductList.html', page_context(
+        request, products=items, keyword=keyword, selected_status=status,
+        status_choices=Product.STATUS_CHOICES,
+        can_change=has_admin_permission(request.user, 'products.change'),
+    ))
+
+
+@admin_permission_required('products.add')
+@require_http_methods(['GET', 'POST'])
+def product_create(request):
+    form = ProductForm(request.POST or None, request.FILES or None)
+    if request.method == 'POST' and form.is_valid():
+        product = form.save(commit=False)
+        product.status = 'draft'; product.is_active = False
+        product.save()
+        write_audit(request, 'product.created', f'Tạo bản nháp {product.name}', 'product', product.id)
+        return redirect('admin_panel:product_edit', product.id)
+    return render(request, 'AdminPanel/ProductForm.html', page_context(request, form=form, page_title='Thêm sản phẩm', product=None))
+
+
+@admin_permission_required('products.change')
+@require_http_methods(['GET', 'POST'])
+def product_edit(request, product_id):
+    product = Product.objects.filter(pk=product_id).first()
+    if not product: raise Http404
+    form = ProductForm(request.POST or None, request.FILES or None, instance=product)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        write_audit(request, 'product.updated', f'Sửa {product.name}', 'product', product.id)
+        messages.success(request, 'Đã cập nhật sản phẩm.')
+        return redirect('admin_panel:product_edit', product.id)
+    return render(request, 'AdminPanel/ProductForm.html', page_context(request, form=form, page_title='Sửa sản phẩm', product=product))
+
+
+@admin_permission_required('products.change')
+@require_POST
+def product_publish(request, product_id):
+    product = Product.objects.filter(pk=product_id).first()
+    if not product: raise Http404
+    if not product.variants.filter(is_active=True).exists():
+        messages.error(request, 'Cần ít nhất một SKU đang hoạt động trước khi công bố.')
+        return redirect('admin_panel:product_edit', product.id)
+    product.status = 'published'; product.is_active = True
+    product.save(update_fields=['status', 'is_active'])
+    write_audit(request, 'product.published', f'Công bố {product.name}', 'product', product.id)
+    return redirect('admin_panel:product_edit', product.id)
+
+
+@admin_permission_required('products.change')
+@require_POST
+def product_archive(request, product_id):
+    product = Product.objects.filter(pk=product_id).first()
+    if not product: raise Http404
+    product.status = 'archived'; product.is_active = False
+    product.save(update_fields=['status', 'is_active'])
+    write_audit(request, 'product.archived', f'Ẩn {product.name}', 'product', product.id)
+    return redirect('admin_panel:products')
+
+
+@admin_permission_required('products.change')
+@require_POST
+def product_bulk_hide(request):
+    ids = request.POST.getlist('product_ids')
+    Product.objects.filter(id__in=ids).update(status='archived', is_active=False)
+    write_audit(request, 'product.bulk_archived', f'Ẩn {len(ids)} sản phẩm')
+    return redirect('admin_panel:products')
+
+
+@admin_permission_required('products.change')
+@require_POST
+def product_image_add(request, product_id):
+    product = Product.objects.filter(pk=product_id).first()
+    if not product: raise Http404
+    image = request.FILES.get('image')
+    if not image or not getattr(image, 'content_type', '').startswith('image/') or image.size > 5 * 1024 * 1024:
+        messages.error(request, 'Ảnh phải đúng định dạng và không quá 5 MB.')
+    else:
+        ProductImage.objects.create(product=product, image=image, alt_text=request.POST.get('alt_text', '')[:200])
+        write_audit(request, 'product.image_added', f'Thêm ảnh {product.name}', 'product', product.id)
+    return redirect('admin_panel:product_edit', product.id)
+
+
+@admin_permission_required('products.change')
+@require_POST
+def product_image_delete(request, image_id):
+    image = ProductImage.objects.filter(pk=image_id).first()
+    if not image: raise Http404
+    product_id = image.product_id
+    image.delete()
+    write_audit(request, 'product.image_deleted', 'Xóa ảnh phụ', 'product', product_id)
+    return redirect('admin_panel:product_edit', product_id)
+
+
+@admin_permission_required('products.export')
+def product_export(request):
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="products.csv"'
+    response.write('\ufeff')
+    writer = csv.writer(response); writer.writerow(['Tên','Slug','Danh mục','Thương hiệu','Giá','Trạng thái'])
+    for item in Product.objects.select_related('category','brand'):
+        writer.writerow([item.name,item.slug,item.category.name,item.brand.name if item.brand else '',item.price,item.status])
+    write_audit(request, 'product.exported', 'Xuất danh sách sản phẩm')
+    return response
 
