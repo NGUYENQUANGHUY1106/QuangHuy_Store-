@@ -25,7 +25,7 @@ ADMIN_MENU = [
     {'label': 'Vận chuyển', 'permission': 'shipping.view', 'url_name': 'shipping_admin:dashboard'},
     {'label': 'Hỗ trợ', 'permission': 'support.view', 'url_name': ''},
     {'label': 'Marketing', 'permission': 'marketing.view', 'url_name': ''},
-    {'label': 'Tài chính', 'permission': 'finance.view', 'url_name': ''},
+    {'label': 'Tài chính', 'permission': 'finance.view', 'url_name': 'finance_admin:dashboard'},
 ]
 
 

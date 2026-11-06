@@ -458,3 +458,12 @@ Trang `/management/shipping/` quản lý phương thức, vùng phí và vận �
 python manage.py migrate
 python manage.py test Shipping
 ```
+
+## 36. A10 - Thanh toán, giao dịch và hoàn tiền
+
+Vai trò `FINANCE` vận hành tại `/management/finance/`. COD chỉ được ghi `paid` sau khi đơn đã giao và số tiền Payment khớp tổng đơn. Mỗi lần thu/hoàn tạo `PaymentTransaction`; event/idempotency key ngăn xử lý lặp. Refund chỉ áp dụng yêu cầu hợp lệ, số tiền dương và không vượt phần đã thu chưa hoàn. Toàn bộ thao tác có audit. Thanh toán online chưa triển khai theo phạm vi dự án.
+
+```powershell
+python manage.py migrate
+python manage.py test Payment
+```

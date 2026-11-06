@@ -16,3 +16,11 @@ class Payment(models.Model):
 
     class Meta:
         db_table = 'payment'
+
+
+class PaymentTransaction(models.Model):
+    payment=models.ForeignKey(Payment,on_delete=models.PROTECT,related_name='transactions')
+    event_id=models.CharField(max_length=100,unique=True); provider_ref=models.CharField(max_length=100,blank=True)
+    transaction_type=models.CharField(max_length=20,default='capture'); status=models.CharField(max_length=20); amount=models.DecimalField(max_digits=14,decimal_places=0)
+    created_at=models.DateTimeField(auto_now_add=True)
+    class Meta: db_table='payment_transaction'; ordering=['-created_at']

@@ -29,5 +29,7 @@ class Refund(models.Model):
     return_request=models.OneToOneField(ReturnRequest,on_delete=models.PROTECT,related_name='refund')
     amount=models.DecimalField(max_digits=14,decimal_places=0)
     status=models.CharField(max_length=20,default='pending')
+    idempotency_key=models.CharField(max_length=100,unique=True,null=True,blank=True)
+    processed_at=models.DateTimeField(null=True,blank=True)
     created_at=models.DateTimeField(auto_now_add=True)
     class Meta: db_table='refund'
