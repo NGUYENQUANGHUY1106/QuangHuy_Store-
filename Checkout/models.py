@@ -26,8 +26,8 @@ class Coupon(models.Model):
 class Order(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Chờ xác nhận'), ('confirmed', 'Đã xác nhận'),
-        ('packing', 'Đang đóng gói'), ('shipped', 'Đã bàn giao'), ('shipping', 'Đang giao'),
-        ('delivered', 'Đã giao'), ('completed', 'Hoàn tất'), ('cancelled', 'Đã hủy'),
+        ('packing', 'Đang chuẩn bị đơn'), ('shipped', 'Đang vận chuyển'), ('shipping', 'Đang vận chuyển'),
+        ('delivered', 'Đã giao hàng'), ('completed', 'Hoàn thành'), ('cancelled', 'Đã hủy'),
     ]
     PAYMENT_CHOICES = [('cod', 'Thanh toán khi nhận hàng')]
 

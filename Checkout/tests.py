@@ -60,6 +60,15 @@ class CheckoutTests(TestCase):
         response = self.client.get(reverse('checkout'))
         self.assertRedirects(response, '/login/?next=/checkout/')
 
+    def test_checkout_page_shows_shipping_fee_and_total_before_submit(self):
+        response = self.client.get(reverse('checkout'))
+
+        self.assertEqual(response.context['initial_shipping_fee'], Decimal('0'))
+        self.assertEqual(response.context['initial_total'], Decimal('2000000'))
+        self.assertContains(response, 'Phí vận chuyển')
+        self.assertContains(response, 'checkout-total')
+        self.assertContains(response, 'products/test.jpg')
+
     def test_place_order_snapshots_data_reduces_stock_and_clears_selected_items(self):
         unselected = CartItem.objects.create(
             cart=self.cart, variant=self.other_variant, quantity=1,
@@ -83,6 +92,8 @@ class CheckoutTests(TestCase):
         self.assertTrue(OrderStatusHistory.objects.filter(order=order, status='pending').exists())
         self.assertFalse(CartItem.objects.filter(id=self.item.id).exists())
         self.assertTrue(CartItem.objects.filter(id=unselected.id).exists())
+        detail = self.client.get(reverse('order_detail', args=[order.order_code]))
+        self.assertContains(detail, 'products/test.jpg')
 
     def test_coupon_and_express_shipping_are_calculated_on_server(self):
         coupon = Coupon.objects.create(code='SALE10', discount_percent=10, min_order=100000)

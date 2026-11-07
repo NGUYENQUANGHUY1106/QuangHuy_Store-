@@ -510,3 +510,11 @@ python manage.py runserver
 ```
 
 Đăng nhập toàn quyền tại `http://127.0.0.1:8000/management/login/`. A11–A17 hoàn tất phần chức năng Admin trong tài liệu; thanh toán online vẫn được bỏ qua theo phạm vi đã chốt, hệ thống chỉ dùng COD.
+
+## 44. Hoàn thiện trải nghiệm giỏ hàng, checkout và trạng thái đơn
+
+- Ô số lượng tại `/cart/` tự gửi cập nhật sau khi tăng, giảm hoặc nhập số; không còn nút **Cập nhật**.
+- `/checkout/` lấy phương thức và phí giao hàng từ backend theo địa chỉ, hiển thị tạm tính, phí vận chuyển và tổng cộng ngay trước khi đặt. Khi đổi địa chỉ hoặc phương thức giao, tổng tiền cập nhật tức thì; backend vẫn tính lại khi tạo đơn.
+- Checkout và chi tiết đơn của khách hiển thị ảnh biến thể, nếu biến thể không có ảnh thì dùng ảnh chính sản phẩm.
+- `/management/products/` có ảnh thu nhỏ cho từng sản phẩm.
+- `/management/orders/` hiển thị màu riêng cho chờ xác nhận, đã xác nhận, đang chuẩn bị, đang vận chuyển, đã giao, hoàn thành và đã hủy. Admin vào **Xử lý** để chuyển tuần tự sang trạng thái hợp lệ tiếp theo; mỗi thay đổi được lưu vào lịch sử đơn.

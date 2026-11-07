@@ -21,6 +21,21 @@ button,input { font:inherit; }
 .admin-main { min-height:100vh; margin-left:260px; padding:48px clamp(24px,5vw,80px); }
 .admin-message { max-width:800px; padding:14px 16px; border:1px solid var(--line); background:#fff; }
 .admin-message.success { border-color:#347a51; }
+.product-thumb { width:72px; height:72px; object-fit:cover; display:block; background:#eee; }
+.status-pill { display:inline-block; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:800; white-space:nowrap; }
+.status-pending { background:#fff1bf; color:#7a5700; }
+.status-confirmed { background:#dcecff; color:#15529a; }
+.status-packing { background:#eadcff; color:#64359b; }
+.status-shipped,.status-shipping { background:#d8f2ff; color:#096180; }
+.status-delivered { background:#d9f4e6; color:#176b43; }
+.status-completed { background:#ccebd7; color:#145c35; }
+.status-cancelled { background:#f7d9d6; color:#912d27; }
+.order-legend { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0; }
+.order-process { font-weight:800; text-decoration:underline; }
+.admin-order-product { display:flex; align-items:center; gap:14px; padding:10px 0; border-bottom:1px solid var(--line); }
+.admin-order-product img { width:72px; height:72px; object-fit:cover; background:#eee; }
+.status-help { color:var(--muted); }
+.danger-button { background:#a33b30; }
 @media (max-width:760px) {
   .admin-sidebar { position:static; width:100%; min-height:auto; padding:20px; }
   .admin-brand { margin-bottom:20px; }

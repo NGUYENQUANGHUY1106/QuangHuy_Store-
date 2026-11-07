@@ -21,7 +21,7 @@
                     {% if item.stock_error %}<strong class="warning">Sản phẩm không còn bán, hết hàng hoặc số lượng vượt tồn kho.</strong>{% endif %}
                     {% if item.price_changed %}<strong class="warning">Giá đã thay đổi từ {{ item.price_when_added|vnd }} thành {{ item.unit_price|vnd }}.</strong>{% endif %}
                     <div class="cart-item__actions">
-                        <form method="post" action="{% url 'cart_item_update' item.id %}">{% csrf_token %}<label>Số lượng<input name="quantity" type="number" min="1" max="{{ item.variant.stock }}" value="{{ item.quantity }}"></label><button type="submit">CẬP NHẬT</button></form>
+                        <form method="post" action="{% url 'cart_item_update' item.id %}" class="quantity-form">{% csrf_token %}<label>Số lượng<input name="quantity" type="number" min="1" max="{{ item.variant.stock }}" value="{{ item.quantity }}" aria-label="Số lượng {{ item.variant.product.name }}"></label><span class="quantity-saving" aria-live="polite"></span></form>
                         <form method="post" action="{% url 'cart_item_delete' item.id %}">{% csrf_token %}<button type="submit">XÓA</button></form>
                     </div>
                 </div>

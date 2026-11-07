@@ -365,7 +365,8 @@ def orders(request):
 
 @admin_permission_required('orders.view')
 def order_detail_admin(request,order_id):
-    order=Order.objects.select_related('user','shipping_address').prefetch_related('items','status_history').filter(pk=order_id).first()
+    order=Order.objects.select_related('user','shipping_address').prefetch_related(
+        'items__variant__product','status_history').filter(pk=order_id).first()
     if not order: raise Http404
     return render(request,'AdminPanel/OrderDetail.html',page_context(request,order=order,warehouses=Warehouse.objects.filter(is_active=True,is_online=True)))
 

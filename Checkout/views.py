@@ -61,6 +61,7 @@ def checkout_page(request):
         cart.items.filter(is_selected=True).select_related('variant', 'variant__product')
     )
     subtotal = sum((item.line_total for item in items), Decimal('0'))
+    addresses = list(user.addresses.all())
 
     if request.method == 'POST':
         address = get_object_or_404(Address, id=request.POST.get('address_id'), user=user)
@@ -155,9 +156,18 @@ def checkout_page(request):
 
     checkout_key = request.session.get('checkout_key') or secrets.token_hex(32)
     request.session['checkout_key'] = checkout_key
+    shipping_options = []
+    if addresses:
+        initial_address = next((address for address in addresses if address.is_default), addresses[0])
+        from Shipping.services import shipping_options_for
+        shipping_options = shipping_options_for(initial_address, subtotal)
+    initial_shipping_fee = shipping_options[0]['fee'] if shipping_options else Decimal('0')
     return render(request, 'Checkout/Checkout.html', {
         'checkout_items': items, 'subtotal': subtotal,
-        'addresses': user.addresses.all(), 'checkout_key': checkout_key,
+        'addresses': addresses, 'checkout_key': checkout_key,
+        'shipping_options': shipping_options,
+        'initial_shipping_fee': initial_shipping_fee,
+        'initial_total': subtotal + initial_shipping_fee,
     })
 
 
@@ -192,7 +202,8 @@ def order_detail(request, order_code):
     if not user:
         return redirect('login')
     order = get_object_or_404(
-        Order.objects.select_related('payment', 'shipping_address').prefetch_related('items', 'status_history'),
+        Order.objects.select_related('payment', 'shipping_address').prefetch_related(
+            'items__variant__product', 'status_history'),
         order_code=order_code, user=user,
     )
     return render(request, 'Checkout/OrderDetail.html', {'order': order})
