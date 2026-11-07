@@ -45,6 +45,8 @@ class AuditLog(models.Model):
     target_type = models.CharField(max_length=100, blank=True)
     target_id = models.CharField(max_length=100, blank=True)
     description = models.CharField(max_length=500, blank=True)
+    before_data = models.JSONField(default=dict, blank=True)
+    after_data = models.JSONField(default=dict, blank=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

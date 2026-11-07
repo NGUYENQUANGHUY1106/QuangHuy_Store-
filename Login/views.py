@@ -24,7 +24,7 @@ def password_is_strong(password):
 
 def current_user(request):
     user_id = request.session.get('user_id')
-    return User.objects.filter(id=user_id).first() if user_id else None
+    return User.objects.filter(id=user_id, is_active=True).first() if user_id else None
 
 
 def account_required(request):
@@ -146,7 +146,7 @@ def login_page(request):
 
         user = User.objects.filter(email__iexact=email).first()
 
-        if user is None or not check_password(password, user.password):
+        if user is None or not user.is_active or not check_password(password, user.password):
             attempts.append(now)
             request.session['login_attempts'] = attempts
             return render(

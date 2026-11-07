@@ -8,6 +8,8 @@ class User(models.Model) :
     phone = models.CharField(max_length=10)
     avatar = models.FileField(blank=True)
     password = models.CharField(max_length=200)
+    is_active = models.BooleanField(default=True)
+    locked_reason = models.CharField(max_length=255, blank=True)
 
     class Meta :
         db_table = 'user'

@@ -11,6 +11,8 @@ class ReturnRequest(models.Model):
     reason=models.CharField(max_length=500)
     status=models.CharField(max_length=20,choices=STATUS_CHOICES,default='pending')
     admin_note=models.CharField(max_length=500,blank=True)
+    exchange_variant=models.ForeignKey('Product.ProductVariant',on_delete=models.PROTECT,null=True,blank=True,related_name='exchange_requests')
+    received_at=models.DateTimeField(null=True,blank=True)
     created_at=models.DateTimeField(auto_now_add=True)
     class Meta: db_table='return_request';ordering=['-created_at']
 
@@ -18,6 +20,9 @@ class ReturnItem(models.Model):
     return_request=models.ForeignKey(ReturnRequest,on_delete=models.CASCADE,related_name='items')
     order_item=models.ForeignKey(OrderItem,on_delete=models.PROTECT,related_name='return_items')
     quantity=models.PositiveIntegerField()
+    received_quantity=models.PositiveIntegerField(default=0)
+    condition=models.CharField(max_length=100,blank=True)
+    restocked=models.BooleanField(default=False)
     class Meta: db_table='return_item'
 
 class ReturnEvidence(models.Model):
@@ -33,3 +38,11 @@ class Refund(models.Model):
     processed_at=models.DateTimeField(null=True,blank=True)
     created_at=models.DateTimeField(auto_now_add=True)
     class Meta: db_table='refund'
+
+class ReturnEvent(models.Model):
+    return_request=models.ForeignKey(ReturnRequest,on_delete=models.CASCADE,related_name='events')
+    status=models.CharField(max_length=20,choices=ReturnRequest.STATUS_CHOICES)
+    note=models.CharField(max_length=500,blank=True)
+    actor=models.ForeignKey('auth.User',on_delete=models.SET_NULL,null=True,blank=True)
+    created_at=models.DateTimeField(auto_now_add=True)
+    class Meta: db_table='return_event';ordering=['created_at','id']

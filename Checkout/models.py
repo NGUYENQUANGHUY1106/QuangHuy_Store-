@@ -8,9 +8,12 @@ from Product.models import ProductVariant
 class Coupon(models.Model):
     code = models.CharField(max_length=30, unique=True)
     discount_percent = models.PositiveIntegerField(default=0, validators=[MaxValueValidator(100)])
+    discount_amount = models.DecimalField(max_digits=14, decimal_places=0, default=0)
+    max_discount = models.DecimalField(max_digits=14, decimal_places=0, null=True, blank=True)
     min_order = models.DecimalField(max_digits=14, decimal_places=0, default=0)
     is_active = models.BooleanField(default=True)
     usage_limit = models.PositiveIntegerField(default=100)
+    per_user_limit = models.PositiveIntegerField(default=1)
     used_count = models.PositiveIntegerField(default=0)
     starts_at = models.DateTimeField(null=True, blank=True)
     ends_at = models.DateTimeField(null=True, blank=True)
@@ -82,7 +85,6 @@ class CouponUsage(models.Model):
 
     class Meta:
         db_table = 'coupon_usage'
-        constraints = [models.UniqueConstraint(fields=['coupon', 'user'], name='one_coupon_use_per_user')]
 
 
 class Promotion(models.Model):
@@ -91,6 +93,9 @@ class Promotion(models.Model):
     starts_at = models.DateTimeField()
     ends_at = models.DateTimeField()
     is_active = models.BooleanField(default=True)
+    discount_percent = models.PositiveIntegerField(default=0, validators=[MaxValueValidator(100)])
+    products = models.ManyToManyField('Product.Product', blank=True, related_name='promotions')
+    categories = models.ManyToManyField('Product.Category', blank=True, related_name='promotions')
 
     class Meta:
         db_table = 'promotion'

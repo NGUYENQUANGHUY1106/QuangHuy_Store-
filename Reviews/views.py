@@ -11,7 +11,7 @@ from .models import ProductQuestion, Review, ReviewImage, ReviewReport
 
 def current_user(request):
     user_id = request.session.get('user_id')
-    return User.objects.filter(id=user_id).first() if user_id else None
+    return User.objects.filter(id=user_id, is_active=True).first() if user_id else None
 
 
 def review_order_item(user, product):

@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from Checkout.models import Order,OrderItem
+from Checkout.models import Coupon
 from Inventory.models import Stock,Warehouse
 from Login.models import User as Customer
 from Payment.models import Payment
@@ -17,6 +18,57 @@ from Product.models import Brand, Category, Product, ProductVariant, SportType
 from .models import AuditLog, StaffProfile
 from .permissions import has_admin_permission
 from .services import menu_for_user
+
+
+class AdminA11ToA17Tests(TestCase):
+    def setUp(self):
+        self.admin = get_user_model().objects.create_superuser(
+            username='admin_operations', email='admin@example.com', password='StrongPass123')
+        self.client.force_login(self.admin)
+
+    def test_all_operation_pages_open_for_superuser(self):
+        names = ['returns', 'customers', 'staff', 'marketing', 'content', 'support',
+                 'reports', 'settings', 'audit_logs']
+        for name in names:
+            with self.subTest(name=name):
+                response = self.client.get(reverse(f'admin_panel:{name}'))
+                self.assertEqual(response.status_code, 200)
+
+    def test_coupon_can_be_created(self):
+        response = self.client.post(reverse('admin_panel:operation_add', args=['coupon']), {
+            'code': 'A13TEST', 'discount_percent': 10, 'discount_amount': 0,
+            'min_order': 100000, 'usage_limit': 10, 'per_user_limit': 1, 'is_active': 'on',
+        })
+        self.assertRedirects(response, reverse('admin_panel:marketing'))
+        self.assertTrue(Coupon.objects.filter(code='A13TEST').exists())
+
+    def test_customer_can_be_locked_with_reason(self):
+        customer = Customer.objects.create(username='locked', email='locked@example.com',
+                                           phone='0900000000', password='hash')
+        response = self.client.post(reverse('admin_panel:customer_toggle', args=[customer.id]),
+                                    {'reason': 'Kiểm tra bảo mật'})
+        self.assertRedirects(response, reverse('admin_panel:customers'))
+        customer.refresh_from_db()
+        self.assertFalse(customer.is_active)
+        self.assertEqual(customer.locked_reason, 'Kiểm tra bảo mật')
+
+    def test_staff_can_be_created_with_role(self):
+        response = self.client.post(reverse('admin_panel:staff_add'), {
+            'username': 'support_new', 'email': 'support@example.com', 'role': 'SUPPORT',
+            'password': 'StrongPass123', 'is_active': 'on',
+        })
+        self.assertRedirects(response, reverse('admin_panel:staff'))
+        user = get_user_model().objects.get(username='support_new')
+        self.assertEqual(user.staff_profile.role, 'SUPPORT')
+
+    def test_settings_update_creates_versioned_audit(self):
+        response = self.client.post(reverse('admin_panel:settings'), {
+            'store_name': 'QH Test', 'contact_email': 'support@example.com',
+            'hotline': '0900000000', 'address': 'Đà Nẵng', 'shipping_fee': 30000,
+            'free_shipping_min': 999000, 'low_stock_threshold': 5, 'allow_checkout': 'on',
+        })
+        self.assertRedirects(response, reverse('admin_panel:settings'))
+        self.assertTrue(AuditLog.objects.filter(action='settings.updated').exists())
 
 
 class AdminAuthenticationTests(TestCase):

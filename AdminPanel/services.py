@@ -28,6 +28,18 @@ ADMIN_MENU = [
     {'label': 'Tài chính', 'permission': 'finance.view', 'url_name': 'finance_admin:dashboard'},
 ]
 
+ADMIN_MENU += [
+    {'label': 'Đổi trả', 'permission': 'returns.view', 'url_name': 'admin_panel:returns'},
+    {'label': 'Khách hàng', 'permission': 'customers.view', 'url_name': 'admin_panel:customers'},
+    {'label': 'Nhân viên', 'permission': 'staff.view', 'url_name': 'admin_panel:staff'},
+    {'label': 'Hỗ trợ khách', 'permission': 'support.view', 'url_name': 'admin_panel:support'},
+    {'label': 'Ưu đãi', 'permission': 'marketing.view', 'url_name': 'admin_panel:marketing'},
+    {'label': 'Nội dung', 'permission': 'content.view', 'url_name': 'admin_panel:content'},
+    {'label': 'Báo cáo', 'permission': 'reports.view', 'url_name': 'admin_panel:reports'},
+    {'label': 'Cài đặt', 'permission': 'settings.view', 'url_name': 'admin_panel:settings'},
+    {'label': 'Nhật ký', 'permission': 'audit.view', 'url_name': 'admin_panel:audit_logs'},
+]
+
 
 def menu_for_user(user):
     return [item for item in ADMIN_MENU if has_admin_permission(user, item['permission'])]

@@ -3,12 +3,13 @@ from django.contrib import messages
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404,redirect,render
 from django.urls import reverse
+from django.utils import timezone
 from Login.models import User
 from Product.models import Category,Product
-from .models import FAQ,Notification,StaticPage,SupportMessage,SupportTicket
+from .models import BlogPost,FAQ,Notification,StaticPage,SupportMessage,SupportTicket
 
 def user(request):
-    uid=request.session.get('user_id');return User.objects.filter(id=uid).first() if uid else None
+    uid=request.session.get('user_id');return User.objects.filter(id=uid,is_active=True).first() if uid else None
 def valid_attachment(file):return not file or (file.size<=3*1024*1024 and getattr(file,'content_type','') in {'image/jpeg','image/png','application/pdf'})
 
 def notification_list(request):
@@ -51,6 +52,12 @@ def ticket_detail(request,ticket_id):
         return redirect('ticket_detail',ticket_id=ticket.id)
     return render(request,'Support/TicketDetail.html',{'ticket':ticket})
 def faq_page(request):return render(request,'Support/FAQ.html',{'faqs':FAQ.objects.filter(is_active=True)})
+def blog_list(request):
+    posts=BlogPost.objects.filter(status='published',published_at__lte=timezone.now())
+    return render(request,'Support/BlogList.html',{'posts':posts})
+def blog_detail(request,slug):
+    post=get_object_or_404(BlogPost,slug=slug,status='published',published_at__lte=timezone.now())
+    return render(request,'Support/BlogDetail.html',{'post':post})
 
 PAGE_DEFAULTS={
  'gioi-thieu':('Giới thiệu','QuangHuy Store cung cấp giày và trang phục bóng đá, hỗ trợ chọn đúng SKU, size và màu.'),

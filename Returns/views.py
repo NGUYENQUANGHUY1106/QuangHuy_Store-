@@ -8,7 +8,7 @@ from Login.models import User
 from .models import ReturnEvidence,ReturnItem,ReturnRequest
 
 def current_user(request):
-    uid=request.session.get('user_id');return User.objects.filter(id=uid).first() if uid else None
+    uid=request.session.get('user_id');return User.objects.filter(id=uid,is_active=True).first() if uid else None
 
 def return_list(request):
     user=current_user(request)

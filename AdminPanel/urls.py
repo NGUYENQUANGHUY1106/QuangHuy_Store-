@@ -1,6 +1,7 @@
 from django.urls import path
 
 from . import views
+from . import views_operations as operations
 
 
 app_name = 'admin_panel'
@@ -35,5 +36,24 @@ urlpatterns = [
     path('orders/',views.orders,name='orders'),
     path('orders/<int:order_id>/',views.order_detail_admin,name='order_detail'),
     path('orders/<int:order_id>/<str:action>/',views.order_action,name='order_action'),
+    path('returns/', operations.returns_list, name='returns'),
+    path('returns/<int:return_id>/', operations.return_detail, name='return_detail'),
+    path('returns/<int:return_id>/<str:action>/', operations.return_action, name='return_action'),
+    path('customers/', operations.customers, name='customers'),
+    path('customers/<int:customer_id>/toggle/', operations.customer_toggle, name='customer_toggle'),
+    path('staff/', operations.staff_list, name='staff'),
+    path('staff/add/', operations.staff_form, name='staff_add'),
+    path('staff/<int:user_id>/edit/', operations.staff_form, name='staff_edit'),
+    path('marketing/', operations.marketing, name='marketing'),
+    path('content/', operations.content, name='content'),
+    path('operations/<str:kind>/add/', operations.crud_form, name='operation_add'),
+    path('operations/<str:kind>/<int:object_id>/edit/', operations.crud_form, name='operation_edit'),
+    path('support/', operations.support_queue, name='support'),
+    path('reviews/<int:review_id>/moderate/', operations.review_moderate, name='review_moderate'),
+    path('tickets/<int:ticket_id>/action/', operations.ticket_action, name='ticket_action'),
+    path('reports/', operations.reports, name='reports'),
+    path('reports/export/', operations.reports_export, name='reports_export'),
+    path('settings/', operations.settings_page, name='settings'),
+    path('audit-logs/', operations.audit_logs, name='audit_logs'),
 ]
 

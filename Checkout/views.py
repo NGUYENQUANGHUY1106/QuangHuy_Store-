@@ -19,7 +19,7 @@ from .models import Coupon, CouponUsage, Order, OrderAddress, OrderDiscount, Ord
 
 def get_user(request):
     user_id = request.session.get('user_id')
-    return User.objects.filter(id=user_id).first() if user_id else None
+    return User.objects.filter(id=user_id, is_active=True).first() if user_id else None
 
 
 def get_coupon(code, user, subtotal):
@@ -35,11 +35,14 @@ def get_coupon(code, user, subtotal):
         return None, Decimal('0'), 'Mã giảm giá đã hết hạn.'
     if subtotal < coupon.min_order:
         return None, Decimal('0'), 'Đơn hàng chưa đạt giá trị tối thiểu của mã.'
-    if CouponUsage.objects.filter(coupon=coupon, user=user).exists():
+    if CouponUsage.objects.filter(coupon=coupon, user=user).count() >= coupon.per_user_limit:
         return None, Decimal('0'), 'Bạn đã sử dụng mã giảm giá này.'
     if coupon.used_count >= coupon.usage_limit:
         return None, Decimal('0'), 'Mã giảm giá đã hết lượt sử dụng.'
-    discount = subtotal * coupon.discount_percent / 100
+    discount = coupon.discount_amount or subtotal * coupon.discount_percent / 100
+    if coupon.max_discount is not None:
+        discount = min(discount, coupon.max_discount)
+    discount = min(discount, subtotal)
     return coupon, discount, ''
 
 
@@ -47,6 +50,11 @@ def checkout_page(request):
     user = get_user(request)
     if not user:
         return redirect('/login/?next=/checkout/')
+    from Support.models import SiteSettings
+    site_settings = SiteSettings.objects.first()
+    if site_settings and not site_settings.allow_checkout:
+        messages.error(request, 'Cửa hàng đang tạm dừng nhận đơn. Vui lòng quay lại sau.')
+        return redirect('cart_page')
 
     cart = get_cart(request, create=False)
     items = [] if not cart else list(
@@ -126,6 +134,8 @@ def checkout_page(request):
                     locked_coupon = Coupon.objects.select_for_update().get(id=coupon.id)
                     if locked_coupon.used_count >= locked_coupon.usage_limit:
                         raise ValueError('Mã giảm giá đã hết lượt sử dụng.')
+                    if CouponUsage.objects.filter(coupon=locked_coupon, user=user).count() >= locked_coupon.per_user_limit:
+                        raise ValueError('Bạn đã dùng hết lượt của mã giảm giá này.')
                     CouponUsage.objects.create(coupon=locked_coupon, user=user, order=order)
                     locked_coupon.used_count += 1
                     locked_coupon.save(update_fields=['used_count'])

@@ -467,3 +467,46 @@ Vai trò `FINANCE` vận hành tại `/management/finance/`. COD chỉ được 
 python manage.py migrate
 python manage.py test Payment
 ```
+
+## 37. A11 - Đổi trả, đổi size và nhận hàng hoàn
+
+Vai trò `ORDER`, `SUPPORT` và superuser xử lý tại `/management/returns/`. Admin có thể duyệt/từ chối kèm lý do, xem ảnh bằng chứng, nhận hàng thực tế theo từng dòng, ghi tình trạng, chọn hoàn kho và cấp SKU thay thế. Nhận hàng dùng transaction, khóa dữ liệu, tạo `StockMovement` và chặn hoàn kho lặp. Yêu cầu hoàn tiền sau khi nhận được chuyển qua A10 tại `/management/finance/`.
+
+## 38. A12 - Khách hàng và nhân viên
+
+- `/management/customers/`: tìm khách, xem số đơn, khóa/mở tài khoản kèm lý do. Tài khoản bị khóa không thể đăng nhập.
+- `/management/staff/`: superuser tạo/sửa nhân viên, kích hoạt tài khoản và gán một trong các vai trò nghiệp vụ. Mật khẩu luôn được Django hash, không hiển thị lại trên giao diện.
+
+## 39. A13 - Voucher và khuyến mãi
+
+Trang `/management/marketing/` quản lý mã giảm theo phần trăm hoặc số tiền, mức giảm tối đa, giá trị đơn tối thiểu, lịch, quota tổng và quota mỗi khách. Chương trình khuyến mãi có thể giới hạn theo sản phẩm hoặc danh mục. Checkout tiếp tục kiểm tra lịch, quota và tính giảm tại server trong transaction.
+
+## 40. A14 - Banner, blog, FAQ và chính sách
+
+Trang `/management/content/` quản lý banner, bài viết, FAQ và trang chính sách. Bài viết công khai tại `/blogs/`, chỉ xuất hiện khi đã publish và đến thời gian đăng. Django auto-escape nội dung khi render để không thực thi HTML/script nhập từ form.
+
+## 41. A15 - Đánh giá, ticket và thông báo
+
+Trang `/management/support/` cho phép duyệt/ẩn đánh giá có lý do, đọc ticket, trả lời, đóng hoặc mở lại. Khi nhân viên trả lời, hệ thống gán người xử lý và tạo thông báo đúng cho chủ ticket.
+
+## 42. A16 - Báo cáo và xuất dữ liệu
+
+Trang `/management/reports/` thống kê đơn không hủy, doanh thu Payment đã thu, tiền hoàn, SKU bán chạy và tồn thấp. Có lọc khoảng ngày và xuất CSV. Quyền xem và quyền export được kiểm tra riêng ở backend; báo cáo không xuất dữ liệu cá nhân khách hàng.
+
+## 43. A17 - Cài đặt và nhật ký hoạt động
+
+- `/management/settings/`: thông tin cửa hàng, phí ship mặc định, ngưỡng freeship/tồn thấp và bật/tắt checkout. Mỗi lần lưu tăng version và ghi dữ liệu trước/sau vào audit.
+- `/management/audit-logs/`: lọc và xem actor, action, đối tượng, mô tả, IP. Secret và mật khẩu database không được phép chỉnh trên UI; vẫn phải cấu hình bằng `.env`.
+
+Sau khi lấy code A11–A17, chạy:
+
+```powershell
+cd D:\QuangHuy_Store\QuangHuy_Store
+python manage.py migrate
+python manage.py check
+python manage.py makemigrations --check --dry-run
+python manage.py test
+python manage.py runserver
+```
+
+Đăng nhập toàn quyền tại `http://127.0.0.1:8000/management/login/`. A11–A17 hoàn tất phần chức năng Admin trong tài liệu; thanh toán online vẫn được bỏ qua theo phạm vi đã chốt, hệ thống chỉ dùng COD.

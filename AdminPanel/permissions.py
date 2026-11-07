@@ -16,10 +16,12 @@ ROLE_PERMISSIONS = {
     },
     'ORDER': {
         'dashboard.view', 'orders.view', 'orders.change', 'shipping.view',
+        'returns.view', 'returns.change', 'customers.view',
     },
     'SUPPORT': {
         'dashboard.view', 'support.view', 'support.change',
         'reviews.view', 'reviews.change',
+        'returns.view', 'returns.change', 'customers.view', 'customers.change',
     },
     'MARKETING': {
         'dashboard.view', 'marketing.view', 'marketing.change',
@@ -28,6 +30,7 @@ ROLE_PERMISSIONS = {
     'FINANCE': {
         'dashboard.view', 'finance.view', 'finance.change', 'finance.export',
         'reports.view', 'reports.export',
+        'returns.view',
     },
 }
 
